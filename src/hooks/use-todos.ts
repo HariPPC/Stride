@@ -13,6 +13,7 @@ import {
   upsertDayProgress,
 } from "@/lib/storage";
 import type { AppSettings, DayProgress, Priority, Todo } from "@/lib/types";
+import { DEFAULT_SETTINGS } from "@/lib/types";
 
 function createId(): string {
   return crypto.randomUUID();
@@ -22,9 +23,7 @@ export function useTodos() {
   const [hydrated, setHydrated] = useState(false);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [progress, setProgress] = useState<DayProgress[]>([]);
-  const [settings, setSettings] = useState<AppSettings>({
-    notificationsEnabled: false,
-  });
+  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const dateKey = todayKey();
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Outfit } from "next/font/google";
 import "./globals.css";
 
@@ -13,9 +13,27 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Stride — Daily todo & reminders",
+  title: "Stride — Daily todo & buddy",
   description:
-    "A daily todo list with reminders and progress tracking built for product managers.",
+    "A daily todo list with reminders and a speaking buddy that helps product managers stay on track.",
+  applicationName: "Stride",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Stride",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#174f4a",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -1,15 +1,18 @@
 "use client";
 
-import { ListTodo, Sparkles } from "lucide-react";
+import { Download, ListTodo, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 
 import { AddTodoForm } from "@/components/add-todo-form";
+import { BuddyCompanion } from "@/components/buddy-companion";
 import { ReminderPermission } from "@/components/reminder-permission";
 import { TodoItem } from "@/components/todo-item";
 import { WeekStreak } from "@/components/week-streak";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { useBuddyVoice } from "@/hooks/use-buddy-voice";
+import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useReminders } from "@/hooks/use-reminders";
 import { useTodos } from "@/hooks/use-todos";
 import { formatDisplayDate } from "@/lib/date";
@@ -37,10 +40,22 @@ export function DailyTodoApp() {
     updateSettings,
   } = useTodos();
 
+  const { canInstall, installed, promptInstall } = usePwaInstall();
+
+  const buddy = useBuddyVoice({
+    enabled: settings.voiceEnabled,
+    userName: settings.userName,
+    todos,
+    hydrated,
+  });
+
   useReminders({
     todos,
-    enabled: settings.notificationsEnabled,
-    onFired: markReminderFired,
+    notificationsEnabled: settings.notificationsEnabled,
+    onFired: (id, title) => {
+      markReminderFired(id);
+      void buddy.remindAbout(title);
+    },
   });
 
   const sorted = useMemo(
@@ -51,6 +66,8 @@ export function DailyTodoApp() {
       }),
     [todos]
   );
+
+  const topOpen = sorted.find((t) => !t.completed) ?? null;
 
   const carryCount = useMemo(
     () => allTodos.filter((t) => t.dateKey !== dateKey && !t.completed).length,
@@ -69,37 +86,70 @@ export function DailyTodoApp() {
 
   return (
     <div className="relative mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12">
-      <header className="space-y-5 animate-fade-up">
+      <header className="animate-fade-up space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="font-display text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
               Stride
             </p>
             <p className="mt-1 text-sm text-muted-foreground sm:text-base">
-              Your daily PM checklist — clear priorities, timed nudges, visible progress.
+              Your daily PM checklist — with a buddy who speaks up when it&apos;s time to move.
             </p>
           </div>
-          <div className="rounded-2xl bg-white/70 px-3 py-2 text-right shadow-sm backdrop-blur-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Streak
-            </p>
-            <p className="font-display text-2xl font-semibold text-ink">
-              {streak}
-              <span className="ml-1 text-sm font-sans font-medium text-muted-foreground">
-                day{streak === 1 ? "" : "s"}
-              </span>
-            </p>
+          <div className="flex flex-col items-end gap-2">
+            <div className="rounded-2xl bg-white/70 px-3 py-2 text-right shadow-sm backdrop-blur-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Streak
+              </p>
+              <p className="font-display text-2xl font-semibold text-ink">
+                {streak}
+                <span className="ml-1 font-sans text-sm font-medium text-muted-foreground">
+                  day{streak === 1 ? "" : "s"}
+                </span>
+              </p>
+            </div>
+            {canInstall ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void promptInstall()}
+              >
+                <Download data-icon="inline-start" />
+                Install app
+              </Button>
+            ) : installed ? (
+              <p className="text-[11px] font-medium text-muted-foreground">
+                Installed on this device
+              </p>
+            ) : null}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-white/75 p-4 shadow-sm backdrop-blur-sm sm:p-5 animate-fade-up-delay">
+        <BuddyCompanion
+          userName={settings.userName}
+          voiceEnabled={settings.voiceEnabled}
+          line={buddy.line}
+          speaking={buddy.speaking}
+          topTaskTitle={topOpen?.title ?? null}
+          onUserNameChange={(userName) => updateSettings({ userName })}
+          onVoiceEnabledChange={(voiceEnabled) =>
+            updateSettings({ voiceEnabled })
+          }
+          onAskAgain={() => {
+            if (topOpen) void buddy.nudgeAbout(topOpen.title);
+          }}
+          onSilence={buddy.silence}
+        />
+
+        <div className="animate-fade-up-delay rounded-2xl border border-border/60 bg-white/75 p-4 shadow-sm backdrop-blur-sm sm:p-5">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-muted-foreground">
                 {formatDisplayDate()}
               </p>
               <h1 className="mt-1 font-display text-xl font-semibold text-ink sm:text-2xl">
-                Today’s progress
+                Today&apos;s progress
               </h1>
             </div>
             <p className="text-sm font-medium text-foreground">
@@ -118,7 +168,7 @@ export function DailyTodoApp() {
         </div>
       </header>
 
-      <section className="space-y-3 animate-fade-up-delay-2">
+      <section className="animate-fade-up-delay-2 space-y-3">
         <ReminderPermission
           enabled={settings.notificationsEnabled}
           onChange={(notificationsEnabled) =>
@@ -156,7 +206,7 @@ export function DailyTodoApp() {
             </p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
               Add the decisions, docs, and follow-ups that move your product forward.
-              Attach a reminder for anything time-sensitive.
+              Your buddy will greet you and speak up when reminders hit.
             </p>
           </div>
         ) : (
@@ -174,8 +224,12 @@ export function DailyTodoApp() {
         )}
       </section>
 
-      <footer className="pb-8 text-center text-xs text-muted-foreground">
-        Saved on this device · Keep the tab open for reminder alerts
+      <footer className="space-y-2 pb-8 text-center text-xs text-muted-foreground">
+        <p>Saved on this device · Install for a home-screen / dock icon</p>
+        <p>
+          Tip: after installing, add Stride to your OS login items / Startup apps so it
+          opens when you start your computer. Browsers can&apos;t force that automatically.
+        </p>
       </footer>
     </div>
   );

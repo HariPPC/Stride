@@ -1,5 +1,5 @@
 import type { AppSettings, DayProgress, Todo } from "@/lib/types";
-import { STORAGE_KEYS } from "@/lib/types";
+import { DEFAULT_SETTINGS, STORAGE_KEYS } from "@/lib/types";
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -34,9 +34,8 @@ export function saveProgress(progress: DayProgress[]): void {
 }
 
 export function loadSettings(): AppSettings {
-  return readJson<AppSettings>(STORAGE_KEYS.settings, {
-    notificationsEnabled: false,
-  });
+  const stored = readJson<Partial<AppSettings>>(STORAGE_KEYS.settings, {});
+  return { ...DEFAULT_SETTINGS, ...stored };
 }
 
 export function saveSettings(settings: AppSettings): void {
