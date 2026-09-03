@@ -100,7 +100,7 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
             ) : null}
           </div>
         </div>
-        <div className="flex shrink-0 gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+        <div className="flex shrink-0 gap-1">
           <Button
             type="button"
             variant="ghost"
