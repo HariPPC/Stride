@@ -29,13 +29,30 @@ Open [http://127.0.0.1:43123](http://127.0.0.1:43123) (or `http://localhost:4312
 
 ## Auto-open when you start your computer
 
-Browsers cannot force an app to launch at login by themselves. After installing:
+A website can’t force itself to launch at power-on. Use the one-time OS helper so Stride starts the local server and opens at login.
 
-- **macOS:** System Settings → General → Login Items → add Stride  
-- **Windows:** put a shortcut to the installed Stride app in the Startup folder  
-- **ChromeOS / Android / iOS:** pin / add to home screen; use the OS’s startup options if available  
+From the project root:
 
-Keep notifications (and voice) enabled so your buddy can greet you when the app opens.
+**macOS**
+```bash
+chmod +x scripts/startup/*.sh
+./scripts/startup/install-macos-login-item.sh
+```
+
+**Windows** (PowerShell)
+```powershell
+.\scripts\startup\install-windows-startup.ps1
+```
+
+**Linux**
+```bash
+chmod +x scripts/startup/*.sh
+./scripts/startup/install-linux-autostart.sh
+```
+
+Then log out/in once to verify. Logs go to `~/.stride/` (or `%USERPROFILE%\.stride\` on Windows).
+
+The in-app **Open when your computer starts** panel also shows the command for your OS. Keep voice/notifications on so your buddy can greet you.
 
 ## Stack
 
