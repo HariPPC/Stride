@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { AddTodoForm } from "@/components/add-todo-form";
 import { BuddyCompanion } from "@/components/buddy-companion";
 import { ReminderPermission } from "@/components/reminder-permission";
+import { StartupGuide } from "@/components/startup-guide";
 import { TodoItem } from "@/components/todo-item";
 import { WeekStreak } from "@/components/week-streak";
 import { Button } from "@/components/ui/button";
@@ -169,6 +170,7 @@ export function DailyTodoApp() {
       </header>
 
       <section className="animate-fade-up-delay-2 space-y-3">
+        <StartupGuide />
         <ReminderPermission
           enabled={settings.notificationsEnabled}
           onChange={(notificationsEnabled) =>
