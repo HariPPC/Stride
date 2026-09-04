@@ -75,18 +75,13 @@ export function DailyTodoApp() {
     [allTodos, dateKey]
   );
 
-  if (!hydrated) {
-    return (
-      <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10 sm:px-6">
-        <div className="h-10 w-40 animate-pulse rounded-lg bg-white/50" />
-        <div className="h-28 animate-pulse rounded-2xl bg-white/50" />
-        <div className="h-40 animate-pulse rounded-2xl bg-white/50" />
-      </div>
-    );
-  }
-
   return (
     <div className="relative mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12">
+      {!hydrated ? (
+        <p className="text-center text-xs text-muted-foreground">
+          Loading saved tasks…
+        </p>
+      ) : null}
       <header className="animate-fade-up space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div>
