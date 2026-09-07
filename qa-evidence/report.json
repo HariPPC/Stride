@@ -1,0 +1,39 @@
+{
+  "url": "http://127.0.0.1:43123/",
+  "checks": {
+    "A_page_load": "PASS",
+    "B1_empty_nudge_enabled": "PASS",
+    "B1_empty_nudge_quote": "PASS",
+    "B2_add_task": "PASS",
+    "B3_nudge_mentions_task": "PASS",
+    "B4_third_nudge": "PASS",
+    "C_complete_progress": "PASS",
+    "C_edit_title": "PASS",
+    "C_delete_task": "PASS",
+    "C_empty_state": "PASS",
+    "D_voice_toggle": "PASS",
+    "D_nudge_with_voice_off": "PASS",
+    "E_mobile_nudge": "PASS"
+  },
+  "evidence": {
+    "emptyNudgeQuote": "Hey Hari, add a focus task for today and I’ll nudge you on it.",
+    "afterTaskQuote": "“Hari, let’s tackle QA nudge task next. You’ve got this.”",
+    "completedProgress": [
+      "1 of 1 done · 100%"
+    ],
+    "mobile": {
+      "btnExists": true,
+      "disabled": false,
+      "rect": {
+        "x": 109.34921264648438,
+        "y": 395.0000305175781,
+        "w": 79.84127807617188,
+        "h": 28.000001907348633,
+        "inView": true
+      },
+      "innerWidth": 390,
+      "scrollWidth": 390,
+      "overflowX": false
+    }
+  }
+}
