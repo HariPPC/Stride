@@ -1,4 +1,4 @@
-# Stride — memory for future sessions
+# Stride Memory File V1
 
 Last updated: 2026-09-07
 
