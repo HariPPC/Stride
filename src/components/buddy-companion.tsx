@@ -72,7 +72,11 @@ export function BuddyCompanion({
               type="button"
               size="sm"
               onClick={onAskAgain}
-              disabled={!topTaskTitle}
+              title={
+                topTaskTitle
+                  ? `Nudge about: ${topTaskTitle}`
+                  : "Add a task to get a focused nudge"
+              }
             >
               Nudge me
             </Button>

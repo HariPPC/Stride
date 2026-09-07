@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  buildEmptyNudge,
   buildGreeting,
   buildNudge,
   buildReminderLine,
@@ -34,8 +35,11 @@ export function useBuddyVoice({
       setLine(text);
       if (!enabled || !canSpeak()) return;
       setSpeaking(true);
-      await speak(text);
-      setSpeaking(false);
+      try {
+        await speak(text);
+      } finally {
+        setSpeaking(false);
+      }
     },
     [enabled]
   );
@@ -64,7 +68,11 @@ export function useBuddyVoice({
   );
 
   const nudgeAbout = useCallback(
-    async (taskTitle: string) => {
+    async (taskTitle: string | null) => {
+      if (!taskTitle) {
+        await say(buildEmptyNudge(userName));
+        return;
+      }
       await say(buildNudge(userName, taskTitle));
     },
     [say, userName]

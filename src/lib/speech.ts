@@ -41,6 +41,7 @@ export function speak(text: string, options: SpeakOptions = {}): Promise<void> {
       return;
     }
 
+    // Chrome can get stuck mid-utterance; clear before starting.
     stopSpeaking();
 
     const utter = new SpeechSynthesisUtterance(text.trim());
@@ -49,24 +50,51 @@ export function speak(text: string, options: SpeakOptions = {}): Promise<void> {
     const voice = pickVoice();
     if (voice) utter.voice = voice;
 
-    utter.onend = () => resolve();
-    utter.onerror = () => resolve();
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(watchdog);
+      resolve();
+    };
+
+    // Never leave callers hanging if the browser drops speech events.
+    const watchdog = window.setTimeout(finish, 12_000);
+
+    utter.onend = finish;
+    utter.onerror = finish;
+
+    const start = () => {
+      const late = pickVoice();
+      if (late) utter.voice = late;
+      window.speechSynthesis.speak(utter);
+      // Chrome bug: speech sometimes stays paused until resume().
+      window.setTimeout(() => {
+        try {
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+        } catch {
+          // ignore
+        }
+      }, 50);
+    };
 
     if (!window.speechSynthesis.getVoices().length) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        const late = pickVoice();
-        if (late) utter.voice = late;
-        window.speechSynthesis.speak(utter);
+      const onVoices = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        start();
       };
+      window.speechSynthesis.onvoiceschanged = onVoices;
       window.setTimeout(() => {
-        if (!window.speechSynthesis.speaking) {
-          window.speechSynthesis.speak(utter);
+        if (!settled && !window.speechSynthesis.speaking) {
+          start();
         }
-      }, 250);
+      }, 300);
       return;
     }
 
-    window.speechSynthesis.speak(utter);
+    start();
   });
 }
 
@@ -91,4 +119,9 @@ export function buildReminderLine(name: string, taskTitle: string): string {
 export function buildNudge(name: string, taskTitle: string): string {
   const first = name.trim() || "friend";
   return `${first}, let’s tackle ${taskTitle} next. You’ve got this.`;
+}
+
+export function buildEmptyNudge(name: string): string {
+  const first = name.trim() || "friend";
+  return `Hey ${first}, add a focus task for today and I’ll nudge you on it.`;
 }

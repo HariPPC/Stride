@@ -133,7 +133,7 @@ export function DailyTodoApp() {
             updateSettings({ voiceEnabled })
           }
           onAskAgain={() => {
-            if (topOpen) void buddy.nudgeAbout(topOpen.title);
+            void buddy.nudgeAbout(topOpen?.title ?? null);
           }}
           onSilence={buddy.silence}
         />
