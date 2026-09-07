@@ -85,7 +85,11 @@ chmod +x /tmp/cloudflared
    Symptom: grey placeholders forever until hard refresh.  
    Fix: UI renders immediately; hydration from `localStorage` is non-blocking (`Loading saved tasks…` only).
 
-3. **Next.js 16 `allowedDevOrigins`**  
+3. **Nudge me button appeared broken**  
+   Causes: button was `disabled` with no open tasks, and `onAskAgain` no-op’d when `topOpen` was null; speech synthesis could hang and leave UI in a bad state.  
+   Fix: always enable Nudge; empty-state line via `buildEmptyNudge`; `nudgeAbout(null)` supported; speech watchdog + Chrome `resume()`; `say()` uses `try/finally`.
+
+4. **Next.js 16 `allowedDevOrigins`**  
    Dev must allow both hosts:
 
    ```ts
