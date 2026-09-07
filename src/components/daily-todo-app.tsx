@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, ListTodo, Sparkles } from "lucide-react";
+import { CalendarDays, Download, ListTodo, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 
 import { AddTodoForm } from "@/components/add-todo-form";
@@ -51,7 +51,7 @@ export function DailyTodoApp() {
   });
 
   useReminders({
-    todos,
+    todos: allTodos,
     notificationsEnabled: settings.notificationsEnabled,
     onFired: (id, title) => {
       markReminderFired(id);
@@ -70,8 +70,22 @@ export function DailyTodoApp() {
 
   const topOpen = sorted.find((t) => !t.completed) ?? null;
 
+  const upcoming = useMemo(
+    () =>
+      allTodos
+        .filter((t) => t.dateKey > dateKey && !t.completed)
+        .sort((a, b) => {
+          if (a.dateKey !== b.dateKey) return a.dateKey.localeCompare(b.dateKey);
+          const aTime = a.reminderTime ?? "99:99";
+          const bTime = b.reminderTime ?? "99:99";
+          if (aTime !== bTime) return aTime.localeCompare(bTime);
+          return priorityRank[a.priority] - priorityRank[b.priority];
+        }),
+    [allTodos, dateKey]
+  );
+
   const carryCount = useMemo(
-    () => allTodos.filter((t) => t.dateKey !== dateKey && !t.completed).length,
+    () => allTodos.filter((t) => t.dateKey < dateKey && !t.completed).length,
     [allTodos, dateKey]
   );
 
@@ -220,6 +234,28 @@ export function DailyTodoApp() {
           </ul>
         )}
       </section>
+
+      {upcoming.length > 0 ? (
+        <section className="space-y-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <CalendarDays className="size-4" />
+            Upcoming
+          </h2>
+          <Separator />
+          <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-white/70 shadow-sm backdrop-blur-sm">
+            {upcoming.map((todo) => (
+              <TodoItem
+                key={todo.id}
+                todo={todo}
+                showDate
+                onToggle={toggleTodo}
+                onDelete={deleteTodo}
+                onUpdate={updateTodo}
+              />
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <footer className="space-y-2 pb-8 text-center text-xs text-muted-foreground">
         <p>Saved on this device · Install for a home-screen / dock icon</p>

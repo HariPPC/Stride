@@ -70,7 +70,12 @@ export function useTodos() {
   }, [hydrated, dateKey, totalCount, completedCount]);
 
   const addTodo = useCallback(
-    (title: string, priority: Priority, reminderTime: string | null) => {
+    (
+      title: string,
+      priority: Priority,
+      reminderTime: string | null,
+      scheduledDateKey = dateKey
+    ) => {
       const trimmed = title.trim();
       if (!trimmed) return;
       const todo: Todo = {
@@ -80,7 +85,7 @@ export function useTodos() {
         priority,
         reminderTime,
         reminderFired: false,
-        dateKey,
+        dateKey: scheduledDateKey || dateKey,
         createdAt: new Date().toISOString(),
       };
       setTodos((prev) => [todo, ...prev]);
@@ -99,15 +104,16 @@ export function useTodos() {
   const updateTodo = useCallback(
     (
       id: string,
-      patch: Partial<Pick<Todo, "title" | "priority" | "reminderTime">>
+      patch: Partial<Pick<Todo, "title" | "priority" | "reminderTime" | "dateKey">>
     ) => {
       setTodos((prev) =>
         prev.map((t) => {
           if (t.id !== id) return t;
           const next = { ...t, ...patch };
           if (
-            patch.reminderTime !== undefined &&
-            patch.reminderTime !== t.reminderTime
+            (patch.reminderTime !== undefined &&
+              patch.reminderTime !== t.reminderTime) ||
+            (patch.dateKey !== undefined && patch.dateKey !== t.dateKey)
           ) {
             next.reminderFired = false;
           }
@@ -130,7 +136,7 @@ export function useTodos() {
 
   const carryIncompleteForward = useCallback(() => {
     const incomplete = todos.filter(
-      (t) => t.dateKey !== dateKey && !t.completed
+      (t) => t.dateKey < dateKey && !t.completed
     );
     if (incomplete.length === 0) return 0;
 

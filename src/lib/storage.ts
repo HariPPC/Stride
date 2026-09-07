@@ -1,5 +1,34 @@
 import type { AppSettings, DayProgress, Todo } from "@/lib/types";
-import { DEFAULT_SETTINGS, STORAGE_KEYS } from "@/lib/types";
+import {
+  DEFAULT_SETTINGS,
+  PO_VALIDATION_TASK_ID,
+  STORAGE_KEYS,
+} from "@/lib/types";
+
+function createPoValidationTask(): Todo {
+  return {
+    id: PO_VALIDATION_TASK_ID,
+    title: "PO validation",
+    completed: false,
+    priority: "high",
+    reminderTime: "20:00",
+    reminderFired: false,
+    dateKey: "2026-09-10",
+    createdAt: new Date().toISOString(),
+  };
+}
+
+function seedPoValidation(todos: Todo[]): Todo[] {
+  if (typeof window === "undefined") return todos;
+  if (window.localStorage.getItem(STORAGE_KEYS.poValidationSeed) === "1") {
+    return todos;
+  }
+  window.localStorage.setItem(STORAGE_KEYS.poValidationSeed, "1");
+  if (todos.some((t) => t.id === PO_VALIDATION_TASK_ID)) {
+    return todos;
+  }
+  return [createPoValidationTask(), ...todos];
+}
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -18,7 +47,7 @@ function writeJson<T>(key: string, value: T): void {
 }
 
 export function loadTodos(): Todo[] {
-  return readJson<Todo[]>(STORAGE_KEYS.todos, []);
+  return seedPoValidation(readJson<Todo[]>(STORAGE_KEYS.todos, []));
 }
 
 export function saveTodos(todos: Todo[]): void {

@@ -31,7 +31,10 @@ export const STORAGE_KEYS = {
   todos: "stride.todos.v1",
   progress: "stride.progress.v1",
   settings: "stride.settings.v1",
+  poValidationSeed: "stride.seed.po-validation-2026-09-10",
 } as const;
+
+export const PO_VALIDATION_TASK_ID = "po-validation-2026-09-10";
 
 export const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: false,

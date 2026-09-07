@@ -12,29 +12,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { todayKey } from "@/lib/date";
 import type { Priority } from "@/lib/types";
 
 type Props = {
-  onAdd: (title: string, priority: Priority, reminderTime: string | null) => void;
+  onAdd: (
+    title: string,
+    priority: Priority,
+    reminderTime: string | null,
+    dateKey?: string
+  ) => void;
 };
 
 export function AddTodoForm({ onAdd }: Props) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
+  const [dueDate, setDueDate] = useState(todayKey());
   const [reminderTime, setReminderTime] = useState("");
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    onAdd(title, priority, reminderTime || null);
+    onAdd(title, priority, reminderTime || null, dueDate || todayKey());
     setTitle("");
     setReminderTime("");
+    setDueDate(todayKey());
     setPriority("medium");
   }
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid gap-3 rounded-2xl border border-border/70 bg-white/70 p-4 shadow-sm backdrop-blur-sm sm:grid-cols-[1fr_auto_auto_auto] sm:items-end"
+      className="grid gap-3 rounded-2xl border border-border/70 bg-white/70 p-4 shadow-sm backdrop-blur-sm sm:grid-cols-[1fr_auto_auto_auto_auto] sm:items-end"
     >
       <div className="space-y-1.5 sm:col-span-1">
         <Label htmlFor="todo-title">Today’s focus</Label>
@@ -63,6 +71,17 @@ export function AddTodoForm({ onAdd }: Props) {
             <SelectItem value="low">Low</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="due-date">Due</Label>
+        <Input
+          id="due-date"
+          type="date"
+          value={dueDate}
+          min={todayKey()}
+          onChange={(e) => setDueDate(e.target.value)}
+          className="min-w-36"
+        />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="reminder-time">Reminder</Label>

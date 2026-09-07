@@ -13,6 +13,22 @@ export function formatDisplayDate(date = new Date()): string {
   });
 }
 
+export function formatDisplayDateKey(dateKey: string): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return formatDisplayDate(new Date(y, m - 1, d));
+}
+
+export function formatReminderTime(reminderTime: string): string {
+  const [hours, minutes] = reminderTime.split(":").map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return reminderTime;
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function parseReminder(dateKey: string, reminderTime: string): Date {
   const [hours, minutes] = reminderTime.split(":").map(Number);
   const [y, m, d] = dateKey.split("-").map(Number);
