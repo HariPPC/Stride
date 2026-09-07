@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Pencil, Trash2 } from "lucide-react";
+import { Bell, CalendarDays, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatDisplayDateKey, formatReminderTime, todayKey } from "@/lib/date";
 import type { Priority, Todo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -31,8 +32,9 @@ type Props = {
   onDelete: (id: string) => void;
   onUpdate: (
     id: string,
-    patch: Partial<Pick<Todo, "title" | "priority" | "reminderTime">>
+    patch: Partial<Pick<Todo, "title" | "priority" | "reminderTime" | "dateKey">>
   ) => void;
+  showDate?: boolean;
 };
 
 const priorityLabel: Record<Priority, string> = {
@@ -41,16 +43,24 @@ const priorityLabel: Record<Priority, string> = {
   low: "Low",
 };
 
-export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
+export function TodoItem({
+  todo,
+  onToggle,
+  onDelete,
+  onUpdate,
+  showDate = false,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(todo.title);
   const [priority, setPriority] = useState<Priority>(todo.priority);
+  const [dueDate, setDueDate] = useState(todo.dateKey);
   const [reminderTime, setReminderTime] = useState(todo.reminderTime ?? "");
 
   function save() {
     onUpdate(todo.id, {
       title: title.trim() || todo.title,
       priority,
+      dateKey: dueDate || todo.dateKey,
       reminderTime: reminderTime || null,
     });
     setOpen(false);
@@ -91,10 +101,16 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
             >
               {priorityLabel[todo.priority]}
             </Badge>
+            {showDate || todo.dateKey !== todayKey() ? (
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <CalendarDays className="size-3.5" />
+                {formatDisplayDateKey(todo.dateKey)}
+              </span>
+            ) : null}
             {todo.reminderTime ? (
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <Bell className="size-3.5" />
-                {todo.reminderTime}
+                {formatReminderTime(todo.reminderTime)}
                 {todo.reminderFired && !todo.completed ? " · sent" : null}
               </span>
             ) : null}
@@ -108,6 +124,7 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
             onClick={() => {
               setTitle(todo.title);
               setPriority(todo.priority);
+              setDueDate(todo.dateKey);
               setReminderTime(todo.reminderTime ?? "");
               setOpen(true);
             }}
@@ -158,6 +175,15 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
                   <SelectItem value="low">Low</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`edit-due-${todo.id}`}>Due</Label>
+              <Input
+                id={`edit-due-${todo.id}`}
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor={`edit-reminder-${todo.id}`}>Reminder</Label>
