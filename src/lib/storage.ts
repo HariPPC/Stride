@@ -1,5 +1,18 @@
 import type { AppSettings, DayProgress, Todo } from "@/lib/types";
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from "@/lib/types";
+import { createData15464Task, DATA_15464_TASK_ID } from "@/lib/work-items";
+
+function seedData15464(todos: Todo[]): Todo[] {
+  if (typeof window === "undefined") return todos;
+  if (window.localStorage.getItem(STORAGE_KEYS.data15464Seed) === "1") {
+    return todos;
+  }
+  window.localStorage.setItem(STORAGE_KEYS.data15464Seed, "1");
+  if (todos.some((t) => t.id === DATA_15464_TASK_ID)) {
+    return todos;
+  }
+  return [createData15464Task(), ...todos];
+}
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -18,7 +31,7 @@ function writeJson<T>(key: string, value: T): void {
 }
 
 export function loadTodos(): Todo[] {
-  return readJson<Todo[]>(STORAGE_KEYS.todos, []);
+  return seedData15464(readJson<Todo[]>(STORAGE_KEYS.todos, []));
 }
 
 export function saveTodos(todos: Todo[]): void {

@@ -99,7 +99,7 @@ export function useTodos() {
   const updateTodo = useCallback(
     (
       id: string,
-      patch: Partial<Pick<Todo, "title" | "priority" | "reminderTime">>
+      patch: Partial<Pick<Todo, "title" | "priority" | "reminderTime" | "notes">>
     ) => {
       setTodos((prev) =>
         prev.map((t) => {
