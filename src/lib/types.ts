@@ -19,6 +19,8 @@ export type Todo = {
   reminderFired: boolean;
   dateKey: string;
   createdAt: string;
+  /** Optional investigation / work-item notes shown on the task */
+  notes?: string;
 };
 
 export type DayProgress = {
@@ -31,6 +33,7 @@ export const STORAGE_KEYS = {
   todos: "stride.todos.v1",
   progress: "stride.progress.v1",
   settings: "stride.settings.v1",
+  data15464Seed: "stride.seed.data-15464-client-id",
 } as const;
 
 export const DEFAULT_SETTINGS: AppSettings = {

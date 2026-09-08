@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Pencil, Trash2 } from "lucide-react";
+import { Bell, FileText, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,7 @@ type Props = {
   onDelete: (id: string) => void;
   onUpdate: (
     id: string,
-    patch: Partial<Pick<Todo, "title" | "priority" | "reminderTime">>
+    patch: Partial<Pick<Todo, "title" | "priority" | "reminderTime" | "notes">>
   ) => void;
 };
 
@@ -43,15 +43,18 @@ const priorityLabel: Record<Priority, string> = {
 
 export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
   const [open, setOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [title, setTitle] = useState(todo.title);
   const [priority, setPriority] = useState<Priority>(todo.priority);
   const [reminderTime, setReminderTime] = useState(todo.reminderTime ?? "");
+  const [notes, setNotes] = useState(todo.notes ?? "");
 
   function save() {
     onUpdate(todo.id, {
       title: title.trim() || todo.title,
       priority,
       reminderTime: reminderTime || null,
+      notes: notes.trim() || undefined,
     });
     setOpen(false);
   }
@@ -99,6 +102,27 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
               </span>
             ) : null}
           </div>
+          {todo.notes ? (
+            <div className="mt-2 rounded-lg bg-muted/60 px-2.5 py-2">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground"
+                onClick={() => setNotesOpen((openNotes) => !openNotes)}
+                aria-expanded={notesOpen}
+              >
+                <FileText className="size-3.5" />
+                {notesOpen ? "Hide investigation" : "Show investigation"}
+              </button>
+              <p
+                className={cn(
+                  "mt-1.5 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground",
+                  !notesOpen && "line-clamp-3"
+                )}
+              >
+                {todo.notes}
+              </p>
+            </div>
+          ) : null}
         </div>
         <div className="flex shrink-0 gap-1">
           <Button
@@ -109,6 +133,7 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
               setTitle(todo.title);
               setPriority(todo.priority);
               setReminderTime(todo.reminderTime ?? "");
+              setNotes(todo.notes ?? "");
               setOpen(true);
             }}
             aria-label="Edit task"
@@ -128,7 +153,7 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
       </li>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit task</DialogTitle>
           </DialogHeader>
@@ -166,6 +191,17 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
                 type="time"
                 value={reminderTime}
                 onChange={(e) => setReminderTime(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`edit-notes-${todo.id}`}>Notes</Label>
+              <textarea
+                id={`edit-notes-${todo.id}`}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={8}
+                className="w-full min-w-0 resize-y rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                placeholder="Investigation notes, next steps, ticket links…"
               />
             </div>
           </div>
