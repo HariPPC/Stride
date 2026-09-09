@@ -6,10 +6,12 @@
     "dev": "npx next dev --hostname 0.0.0.0 --port 43123",
     "build": "npx next build",
     "start": "npx next start --hostname 0.0.0.0 --port 43123",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:seed": "node scripts/seed-db.cjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "better-sqlite3": "^13.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.39.0",
@@ -22,6 +24,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, ListTodo, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { Database, Download, ListTodo, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 
 import { AddTodoForm } from "@/components/add-todo-form";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useBuddyVoice } from "@/hooks/use-buddy-voice";
+import { useDbSync } from "@/hooks/use-db-sync";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useReminders } from "@/hooks/use-reminders";
 import { useTodos } from "@/hooks/use-todos";
@@ -40,6 +42,13 @@ export function DailyTodoApp() {
     carryIncompleteForward,
     updateSettings,
   } = useTodos();
+
+  const dbSync = useDbSync({
+    hydrated,
+    todos: allTodos,
+    progress,
+    settings,
+  });
 
   const { canInstall, installed, promptInstall } = usePwaInstall();
 
@@ -104,6 +113,15 @@ export function DailyTodoApp() {
                 </span>
               </p>
             </div>
+            <Link
+              href="/dashboard"
+              className={
+                "inline-flex h-7 items-center justify-center gap-1 rounded-[min(var(--radius-md),12px)] border border-border bg-background px-2.5 text-[0.8rem] font-medium transition-all hover:bg-muted hover:text-foreground"
+              }
+            >
+              <Database className="size-3.5" />
+              Dashboard
+            </Link>
             {canInstall ? (
               <Button
                 type="button"
@@ -222,7 +240,17 @@ export function DailyTodoApp() {
       </section>
 
       <footer className="space-y-2 pb-8 text-center text-xs text-muted-foreground">
-        <p>Saved on this device · Install for a home-screen / dock icon</p>
+        <p>
+          Saved on this device
+          {dbSync.status === "synced"
+            ? " · synced to SQLite"
+            : dbSync.status === "syncing"
+              ? " · syncing to SQLite…"
+              : dbSync.status === "error"
+                ? ` · DB sync issue: ${dbSync.error ?? "retry later"}`
+                : ""}{" "}
+          · Install for a home-screen / dock icon
+        </p>
         <p>
           Tip: after installing, add Stride to your OS login items / Startup apps so it
           opens when you start your computer. Browsers can&apos;t force that automatically.
