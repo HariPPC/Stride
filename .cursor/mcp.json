@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "stride-sqlite": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-sqlite",
+        "data/stride.db"
+      ]
+    }
+  }
+}

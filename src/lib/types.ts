@@ -27,6 +27,22 @@ export type DayProgress = {
   completed: number;
 };
 
+export type DashboardStats = {
+  totals: {
+    todos: number;
+    completed: number;
+    open: number;
+    completionRate: number;
+    daysTracked: number;
+    currentStreak: number;
+  };
+  byPriority: { priority: Priority; total: number; completed: number }[];
+  recentDays: DayProgress[];
+  recentTodos: Todo[];
+  settings: AppSettings;
+  dbPath: string;
+};
+
 export const STORAGE_KEYS = {
   todos: "stride.todos.v1",
   progress: "stride.progress.v1",
