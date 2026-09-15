@@ -1,16 +1,23 @@
-# Stride
+# Current — Ecommerce Knowledge Agent (MVP)
 
-A daily todo list for product managers, with **browser reminders**, **progress tracking**, and a **speaking buddy** who greets you and nudges you by name (default: Hari).
+Prototype UI for the AI Ecom Guide MVP: a **free-form chat** that helps Business, Product, UX, QA, Engineering, and Operations discover current ecommerce capabilities with **source-linked** answers.
 
-## Features
+## What this prototype demonstrates
 
-- Today’s tasks with High / Medium / Low priority
-- Timed reminders (browser notifications + spoken nudges)
-- Speaking buddy avatar (“Hari, can you please work on…”)
-- Daily progress + 7-day streak
-- Carry unfinished tasks into today
-- Installable as an app (PWA) with a home-screen / dock icon
-- Local-only storage (`localStorage`) — no account required
+- Free-form discovery chat for the **Checkout** pilot journey
+- Role lenses: Business / UX / QA / Engineering
+- Structured answers for core use cases:
+  - Current functionality discovery
+  - Business rule finder
+  - UX flow & screenshot discovery
+  - Edge case discovery
+  - Dependency & impact discovery
+  - Decision history
+  - New-initiative context pack
+- Trust UX: **sources**, **conflicts**, **knowledge gaps**, and **confidence**
+- Journey switcher including Payroll API (benchmark framing)
+
+Knowledge responses are **seeded mocks** for product/UX validation — not live code extraction.
 
 ## Run locally
 
@@ -19,41 +26,8 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:43123](http://127.0.0.1:43123) (or `http://localhost:43123`).
-
-## Install as an app (icon)
-
-1. Open Stride in Chrome / Edge.
-2. Click **Install app** (or the browser’s install / “Add to Home Screen” option).
-3. You’ll get a Stride icon on your dock / home screen / app launcher.
-
-## Auto-open when you start your computer
-
-A website can’t force itself to launch at power-on. Use the one-time OS helper so Stride starts the local server and opens at login.
-
-From the project root:
-
-**macOS**
-```bash
-chmod +x scripts/startup/*.sh
-./scripts/startup/install-macos-login-item.sh
-```
-
-**Windows** (PowerShell)
-```powershell
-.\scripts\startup\install-windows-startup.ps1
-```
-
-**Linux**
-```bash
-chmod +x scripts/startup/*.sh
-./scripts/startup/install-linux-autostart.sh
-```
-
-Then log out/in once to verify. Logs go to `~/.stride/` (or `%USERPROFILE%\.stride\` on Windows).
-
-The in-app **Open when your computer starts** panel also shows the command for your OS. Keep voice/notifications on so your buddy can greet you.
+Open [http://127.0.0.1:43123](http://127.0.0.1:43123).
 
 ## Stack
 
-Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, Web Speech API, PWA manifest + service worker.
+Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui primitives.
