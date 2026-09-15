@@ -7,12 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-fraunces), ui-serif, Georgia, serif;
-  --color-ink: var(--ink);
-  --color-accent-teal: var(--accent-teal);
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-heading: var(--font-syne), ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -52,40 +50,44 @@
 }
 
 :root {
-  --ink: #14323b;
-  --accent-teal: #1f8a7a;
-  --background: #e8f1ef;
-  --foreground: #14323b;
+  --ink: #0b1f33;
+  --foam: #f4f8fb;
+  --muted-ink: #5a6f82;
+  --accent: #e85d4c;
+  --line: #c9d6e3;
+  --wash: #e8eef5;
+  --surface: rgba(244, 248, 251, 0.92);
+  --background: #e7eef6;
+  --foreground: #0b1f33;
   --card: #ffffff;
-  --card-foreground: #14323b;
+  --card-foreground: #0b1f33;
   --popover: #ffffff;
-  --popover-foreground: #14323b;
-  --primary: #174f4a;
-  --primary-foreground: #f4fbf9;
-  --secondary: #d7e8e3;
-  --secondary-foreground: #14323b;
-  --muted: #dce9e5;
-  --muted-foreground: #4d676e;
-  --accent: #cfe7e1;
-  --accent-foreground: #14323b;
+  --popover-foreground: #0b1f33;
+  --primary: #0b1f33;
+  --primary-foreground: #f4f8fb;
+  --secondary: #d9e4ef;
+  --secondary-foreground: #0b1f33;
+  --muted: #dce6f0;
+  --muted-foreground: #5a6f82;
+  --accent-foreground: #ffffff;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: #c5d8d2;
-  --input: #c5d8d2;
-  --ring: #1f8a7a;
-  --chart-1: #1f8a7a;
-  --chart-2: #3d6f78;
-  --chart-3: #174f4a;
-  --chart-4: #8fb8ae;
-  --chart-5: #14323b;
+  --border: #c9d6e3;
+  --input: #c9d6e3;
+  --ring: #e85d4c;
+  --chart-1: #e85d4c;
+  --chart-2: #3886a8;
+  --chart-3: #0b1f33;
+  --chart-4: #7aa0b8;
+  --chart-5: #c46b3a;
   --radius: 0.75rem;
-  --sidebar: #f4fbf9;
-  --sidebar-foreground: #14323b;
-  --sidebar-primary: #174f4a;
-  --sidebar-primary-foreground: #f4fbf9;
-  --sidebar-accent: #d7e8e3;
-  --sidebar-accent-foreground: #14323b;
-  --sidebar-border: #c5d8d2;
-  --sidebar-ring: #1f8a7a;
+  --sidebar: #f4f8fb;
+  --sidebar-foreground: #0b1f33;
+  --sidebar-primary: #0b1f33;
+  --sidebar-primary-foreground: #f4f8fb;
+  --sidebar-accent: #d9e4ef;
+  --sidebar-accent-foreground: #0b1f33;
+  --sidebar-border: #c9d6e3;
+  --sidebar-ring: #e85d4c;
 }
 
 @layer base {
@@ -95,9 +97,9 @@
   body {
     @apply bg-background text-foreground;
     background-image:
-      radial-gradient(ellipse 80% 50% at 10% -10%, #b8ddd4 0%, transparent 55%),
-      radial-gradient(ellipse 70% 45% at 100% 0%, #c5dceb 0%, transparent 50%),
-      linear-gradient(180deg, #eef5f3 0%, #e2ece9 45%, #d9e6e2 100%);
+      radial-gradient(ellipse 90% 55% at 0% -5%, rgba(56, 134, 168, 0.22), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 100% 0%, rgba(232, 93, 76, 0.12), transparent 50%),
+      linear-gradient(180deg, #eef3f8 0%, #e4ecf4 48%, #dce6f0 100%);
     background-attachment: fixed;
     min-height: 100vh;
   }
@@ -110,10 +112,18 @@
   font-family: var(--font-display);
 }
 
-@keyframes fade-up {
+.mesh-grid {
+  background-image:
+    linear-gradient(rgba(11, 31, 51, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11, 31, 51, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black, transparent);
+}
+
+@keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -121,14 +131,28 @@
   }
 }
 
-@utility animate-fade-up {
-  animation: fade-up 0.55s ease-out both;
+@keyframes orb-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(12px, 18px, 0) scale(1.04);
+  }
 }
 
-@utility animate-fade-up-delay {
-  animation: fade-up 0.55s ease-out 0.08s both;
+@utility animate-rise {
+  animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@utility animate-fade-up-delay-2 {
-  animation: fade-up 0.55s ease-out 0.16s both;
+@utility animate-rise-delay {
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.1s both;
+}
+
+.motion-orb {
+  animation: orb-drift 14s ease-in-out infinite;
+}
+
+.motion-orb-delay {
+  animation: orb-drift 18s ease-in-out infinite reverse;
 }
