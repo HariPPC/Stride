@@ -35,10 +35,12 @@ export function stopSpeaking(): void {
   window.speechSynthesis.cancel();
 }
 
-export function speak(text: string, options: SpeakOptions = {}): Promise<void> {
+export type SpeakResult = "ended" | "failed" | "skipped";
+
+export function speak(text: string, options: SpeakOptions = {}): Promise<SpeakResult> {
   return new Promise((resolve) => {
     if (!canSpeak() || !text.trim()) {
-      resolve();
+      resolve("skipped");
       return;
     }
 
@@ -58,43 +60,19 @@ export function speak(text: string, options: SpeakOptions = {}): Promise<void> {
     if (voice) utter.voice = voice;
 
     let settled = false;
-    let retried = false;
+    let retries = 0;
+    let result: SpeakResult = "failed";
     const finish = () => {
       if (settled) return;
       settled = true;
       window.clearTimeout(watchdog);
-      resolve();
+      resolve(result);
     };
 
-    const watchdog = window.setTimeout(finish, 15_000);
-    utter.onend = () => {
-      if (currentUtterance === utter) currentUtterance = null;
-      finish();
-    };
-    utter.onerror = (event) => {
-      // Chrome drops an utterance that starts in the same turn as cancel().
-      if (
-        !retried &&
-        (event.error === "interrupted" ||
-          event.error === "canceled" ||
-          event.error === "not-allowed")
-      ) {
-        retried = true;
-        window.setTimeout(() => {
-          if (settled) return;
-          try {
-            synth.resume();
-          } catch {
-            // ignore
-          }
-          synth.speak(utter);
-        }, 60);
-        return;
-      }
-      finish();
-    };
+    const watchdog = window.setTimeout(finish, 20_000);
 
     const startNow = () => {
+      if (currentUtterance !== utter || settled) return;
       const late = pickVoice();
       if (late) utter.voice = late;
       try {
@@ -102,16 +80,52 @@ export function speak(text: string, options: SpeakOptions = {}): Promise<void> {
       } catch {
         // ignore
       }
-      // Speak in this turn so a button click still counts as the user gesture.
       synth.speak(utter);
     };
 
-    if (synth.speaking || synth.pending) {
-      synth.cancel();
-      window.setTimeout(startNow, 60);
-      return;
+    utter.onend = () => {
+      if (currentUtterance === utter) currentUtterance = null;
+      result = "ended";
+      finish();
+    };
+    utter.onerror = (event) => {
+      // A newer line owns the speaker. Do not talk over it.
+      if (currentUtterance !== utter) {
+        finish();
+        return;
+      }
+      // A login-opened tab often has no click yet. Retry while voices load.
+      if (
+        retries < 3 &&
+        (event.error === "not-allowed" ||
+          event.error === "interrupted" ||
+          event.error === "canceled")
+      ) {
+        retries += 1;
+        window.setTimeout(startNow, 300);
+        return;
+      }
+      finish();
+    };
+
+    if (!synth.getVoices().length) {
+      const onVoices = () => {
+        synth.removeEventListener("voiceschanged", onVoices);
+        if (currentUtterance === utter && !settled && !synth.speaking && !synth.pending) {
+          startNow();
+        }
+      };
+      synth.addEventListener("voiceschanged", onVoices);
     }
 
+    if (synth.speaking || synth.pending) {
+      try {
+        synth.cancel();
+      } catch {
+        // ignore
+      }
+    }
+    // Speak in this turn so Nudge me still counts as the user gesture.
     startNow();
   });
 }
@@ -151,6 +165,11 @@ export function buildProjectReminderLine(
   }
   const more = openCount - 1;
   return `Hey ${first}, ${projectName} still has open work. Start with ${topTitle}. ${more} more ${more === 1 ? "task is" : "tasks are"} waiting on that project.`;
+}
+
+export function buildDoneGreeting(name: string): string {
+  const first = name.trim() || "friend";
+  return `Hey ${first}. You’re clear for today. I’ll speak up when there’s something new to move.`;
 }
 
 export function buildEmptyNudge(name: string): string {

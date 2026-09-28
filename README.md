@@ -59,7 +59,9 @@ chmod +x scripts/startup/*.sh
 
 Then log out/in once to verify. Logs go to `~/.stride/` (or `%USERPROFILE%\.stride\` on Windows).
 
-The in-app **Open when your computer starts** panel also shows the command for your OS. Keep voice/notifications on so your buddy can greet you.
+At sign-in, the helper speaks the greeting Stride saved last time it was open: your name and today’s open tasks. The browser opens after that. If nothing was saved yet, the page speaks the list itself once your tasks load. Keep voice on.
+
+The in-app **Open when your computer starts** panel also shows the command for your OS.
 
 ## Stack
 

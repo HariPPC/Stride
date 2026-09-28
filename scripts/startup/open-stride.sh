@@ -33,6 +33,22 @@ start_server() {
   echo $! > "${PID_FILE}"
 }
 
+speak_greeting() {
+  local file="${LOG_DIR}/greeting.txt"
+  [[ -s "${file}" ]] || return 1
+  if command -v say >/dev/null 2>&1; then
+    say -f "${file}"
+  elif command -v espeak-ng >/dev/null 2>&1; then
+    espeak-ng -f "${file}"
+  elif command -v espeak >/dev/null 2>&1; then
+    espeak -f "${file}"
+  elif command -v spd-say >/dev/null 2>&1; then
+    spd-say "$(tr -d '\r' < "${file}")"
+  else
+    return 1
+  fi
+}
+
 open_app() {
   if command -v open >/dev/null 2>&1; then
     # macOS — prefer installed PWA-style Chrome app window when available
@@ -58,6 +74,10 @@ open_app() {
       fi
       sleep 1
     done
+  fi
+  if speak_greeting; then
+    URL="${URL}/?spoken=1"
+    echo "[stride] Spoke today's task list"
   fi
   open_app
   echo "[stride] Opened ${URL}"

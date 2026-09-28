@@ -32,7 +32,7 @@ const COMMANDS: Record<Exclude<Platform, "other">, { title: string; steps: strin
     steps: [
       "Keep this project on your PC (Node.js installed).",
       "Open PowerShell in the project folder and run the command below once.",
-      "Sign out/in once to verify Stride starts and opens in your browser.",
+      "Sign out and back in. Windows speaks today's open tasks, then Stride opens.",
     ],
     command:
       'powershell -ExecutionPolicy Bypass -File .\\scripts\\startup\\install-windows-startup.ps1',
