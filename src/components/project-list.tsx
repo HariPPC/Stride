@@ -92,9 +92,7 @@ export function ProjectList({
                 <p className="min-w-0 flex-1 text-sm font-medium text-foreground">
                   {project.name}
                   <span className="ml-2 font-normal text-muted-foreground">
-                    {open === 0
-                      ? "Nothing open"
-                      : `${open} open`}
+                    {open === 0 ? " · Nothing open" : ` · ${open} open`}
                   </span>
                 </p>
                 <Input
