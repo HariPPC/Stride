@@ -4,6 +4,9 @@ A daily todo list for product managers, with **browser reminders**, **progress t
 
 ## Features
 
+- Add tasks on any date, and move between days
+- Projects with an optional reminder that speaks up only while that project still has open work
+- A 7-day and 30-day report by day, project, and kind, plus what’s coming up
 - Today’s tasks with High / Medium / Low priority
 - Task kinds: decision, doc, follow-up, or meeting, plus a note on each task
 - Pin one task as today’s focus — the buddy nudges that one

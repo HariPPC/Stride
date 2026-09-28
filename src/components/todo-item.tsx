@@ -24,11 +24,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { taskKindClass, taskKindLabel } from "@/lib/tasks";
-import type { Priority, TaskKind, Todo, TodoPatch } from "@/lib/types";
+import type { Priority, Project, TaskKind, Todo, TodoPatch } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const selectClass =
+  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 type Props = {
   todo: Todo;
+  projects: Project[];
+  projectName: string | null;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onUpdate: (id: string, patch: TodoPatch) => void;
@@ -44,13 +49,23 @@ const priorityLabel: Record<Priority, string> = {
 const noteClass =
   "min-h-20 w-full resize-y rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
-export function TodoItem({ todo, onToggle, onDelete, onUpdate, onPin }: Props) {
+export function TodoItem({
+  todo,
+  projects,
+  projectName,
+  onToggle,
+  onDelete,
+  onUpdate,
+  onPin,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(todo.title);
   const [priority, setPriority] = useState<Priority>(todo.priority);
   const [reminderTime, setReminderTime] = useState(todo.reminderTime ?? "");
   const [kind, setKind] = useState<TaskKind | null>(todo.kind);
   const [note, setNote] = useState(todo.note);
+  const [dateKey, setDateKey] = useState(todo.dateKey);
+  const [projectId, setProjectId] = useState<string | null>(todo.projectId);
 
   function openEditor() {
     setTitle(todo.title);
@@ -58,6 +73,8 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate, onPin }: Props) {
     setReminderTime(todo.reminderTime ?? "");
     setKind(todo.kind);
     setNote(todo.note);
+    setDateKey(todo.dateKey);
+    setProjectId(todo.projectId);
     setOpen(true);
   }
 
@@ -68,6 +85,8 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate, onPin }: Props) {
       reminderTime: reminderTime || null,
       kind,
       note,
+      dateKey,
+      projectId,
     });
     setOpen(false);
   }
@@ -106,6 +125,9 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate, onPin }: Props) {
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             {todo.pinned ? (
               <Badge className="bg-primary/10 text-primary">Focus</Badge>
+            ) : null}
+            {projectName ? (
+              <Badge className="bg-emerald-100 text-emerald-900">{projectName}</Badge>
             ) : null}
             {kindLabel && todo.kind ? (
               <Badge className={taskKindClass(todo.kind)}>{kindLabel}</Badge>
@@ -193,6 +215,32 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate, onPin }: Props) {
                 placeholder="Context for this decision, doc, or follow-up."
                 className={noteClass}
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`edit-date-${todo.id}`}>Date</Label>
+              <Input
+                id={`edit-date-${todo.id}`}
+                type="date"
+                value={dateKey}
+                onChange={(event) => setDateKey(event.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`edit-project-${todo.id}`}>Project</Label>
+              <select
+                id={`edit-project-${todo.id}`}
+                value={projectId ?? ""}
+                onChange={(event) => setProjectId(event.target.value || null)}
+                className={selectClass}
+              >
+                <option value="">No project</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1.5">
               <Label>Priority</Label>

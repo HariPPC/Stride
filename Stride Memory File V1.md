@@ -1,12 +1,15 @@
 # Stride Memory File V1
 
-Last updated: 2026-09-28
+Last updated: 2026-09-28 (dates, reports, projects)
 
 ## What this project is
 
 **Stride** is a daily todo web app for product managers:
 
 - Today’s tasks with High / Medium / Low priority
+- Tasks can be added for any date. The day switcher shows that day. Carry forward only pulls unfinished tasks dated before today.
+- Projects (`stride.projects.v1`). A project reminder time is optional. It fires once per day, and only when the project has open tasks dated today or earlier.
+- Report: last 7 or 30 days, by day / project / kind, plus upcoming dates. Clicking a day opens it.
 - Task kinds (decision, doc, follow-up, meeting) and a note on each task
 - Pin one task as today’s focus; the buddy nudges that task first
 - Search and filters (open / done, kind, priority)
@@ -128,7 +131,11 @@ In-app panel: **Open when your computer starts** (`StartupGuide`).
 | `src/components/task-filters.tsx` | Search + status/kind/priority filters |
 | `src/components/day-note.tsx` | What moved / what’s blocked |
 | `src/components/focus-card.tsx` | Pinned task |
-| `src/lib/tasks.ts` | Kinds, filters, todo/day-log normalize |
+| `src/lib/tasks.ts` | Kinds, filters, todo/day-log/project normalize |
+| `src/lib/report.ts` | 7- and 30-day report |
+| `src/components/day-switcher.tsx` | Move between dates |
+| `src/components/project-list.tsx` | Projects and optional reminders |
+| `src/components/report-panel.tsx` | Report UI |
 | `src/components/buddy-companion.tsx` | Avatar + voice controls |
 | `src/hooks/use-todos.ts` | Todos + settings + localStorage |
 | `src/hooks/use-buddy-voice.ts` | Greeting / nudge speech |

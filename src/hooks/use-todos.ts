@@ -3,13 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { todayKey } from "@/lib/date";
+import { isDateKey } from "@/lib/date";
 import {
   loadDayLogs,
   loadProgress,
+  loadProjects,
   loadSettings,
   loadTodos,
   saveDayLogs,
   saveProgress,
+  saveProjects,
   saveSettings,
   saveTodos,
   upsertDayLog,
@@ -19,8 +22,9 @@ import type {
   AppSettings,
   DayLog,
   DayProgress,
-  Priority,
-  TaskKind,
+  NewTodoInput,
+  Project,
+  ProjectPatch,
   Todo,
   TodoPatch,
 } from "@/lib/types";
@@ -36,6 +40,7 @@ export function useTodos() {
   const [progress, setProgress] = useState<DayProgress[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [dayLogs, setDayLogs] = useState<DayLog[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const dateKey = todayKey();
 
   useEffect(() => {
@@ -43,6 +48,7 @@ export function useTodos() {
     setProgress(loadProgress());
     setSettings(loadSettings());
     setDayLogs(loadDayLogs());
+    setProjects(loadProjects());
     setHydrated(true);
   }, []);
 
@@ -66,6 +72,11 @@ export function useTodos() {
     saveDayLogs(dayLogs);
   }, [dayLogs, hydrated]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+    saveProjects(projects);
+  }, [projects, hydrated]);
+
   const todayTodos = useMemo(
     () => todos.filter((t) => t.dateKey === dateKey),
     [todos, dateKey]
@@ -87,33 +98,26 @@ export function useTodos() {
     );
   }, [hydrated, dateKey, totalCount, completedCount]);
 
-  const addTodo = useCallback(
-    (
-      title: string,
-      priority: Priority,
-      reminderTime: string | null,
-      kind: TaskKind | null = null,
-      note = ""
-    ) => {
-      const trimmed = title.trim();
-      if (!trimmed) return;
-      const todo: Todo = {
-        id: createId(),
-        title: trimmed,
-        completed: false,
-        priority,
-        reminderTime,
-        reminderFired: false,
-        dateKey,
-        createdAt: new Date().toISOString(),
-        kind,
-        note: note.trim(),
-        pinned: false,
-      };
-      setTodos((prev) => [todo, ...prev]);
-    },
-    [dateKey]
-  );
+  const addTodo = useCallback((input: NewTodoInput) => {
+    const trimmed = input.title.trim();
+    const taskDate = isDateKey(input.dateKey) ? input.dateKey : dateKey;
+    if (!trimmed) return;
+    const todo: Todo = {
+      id: createId(),
+      title: trimmed,
+      completed: false,
+      priority: input.priority,
+      reminderTime: input.reminderTime,
+      reminderFired: false,
+      dateKey: taskDate,
+      createdAt: new Date().toISOString(),
+      kind: input.kind,
+      note: input.note.trim(),
+      pinned: false,
+      projectId: input.projectId,
+    };
+    setTodos((prev) => [todo, ...prev]);
+  }, [dateKey]);
 
   const toggleTodo = useCallback((id: string) => {
     setTodos((prev) =>
@@ -129,11 +133,18 @@ export function useTodos() {
         if (t.id !== id) return t;
         const next = { ...t, ...patch };
         if (patch.note !== undefined) next.note = patch.note.trim();
+        if (patch.dateKey !== undefined && !isDateKey(patch.dateKey)) {
+          next.dateKey = t.dateKey;
+        }
         if (
-          patch.reminderTime !== undefined &&
-          patch.reminderTime !== t.reminderTime
+          (patch.reminderTime !== undefined &&
+            patch.reminderTime !== t.reminderTime) ||
+          (patch.dateKey !== undefined && patch.dateKey !== t.dateKey)
         ) {
           next.reminderFired = false;
+        }
+        if (patch.dateKey !== undefined && patch.dateKey !== t.dateKey) {
+          next.pinned = false;
         }
         return next;
       })
@@ -158,11 +169,62 @@ export function useTodos() {
     });
   }, []);
 
-  const clearCompletedToday = useCallback(() => {
+  const clearCompleted = useCallback((forDate: string) => {
     setTodos((prev) =>
-      prev.filter((todo) => !(todo.dateKey === dateKey && todo.completed))
+      prev.filter((todo) => !(todo.dateKey === forDate && todo.completed))
     );
-  }, [dateKey]);
+  }, []);
+
+  const addProject = useCallback((name: string, reminderTime: string | null) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const project: Project = {
+      id: createId(),
+      name: trimmed,
+      reminderTime,
+      reminderFiredOn: null,
+    };
+    setProjects((prev) => [...prev, project]);
+  }, []);
+
+  const updateProject = useCallback((id: string, patch: ProjectPatch) => {
+    setProjects((prev) =>
+      prev.map((project) => {
+        if (project.id !== id) return project;
+        const next = { ...project, ...patch };
+        if (patch.name !== undefined) {
+          next.name = patch.name.trim() || project.name;
+        }
+        if (
+          patch.reminderTime !== undefined &&
+          patch.reminderTime !== project.reminderTime
+        ) {
+          next.reminderFiredOn = null;
+        }
+        return next;
+      })
+    );
+  }, []);
+
+  const deleteProject = useCallback((id: string) => {
+    setProjects((prev) => prev.filter((project) => project.id !== id));
+    setTodos((prev) =>
+      prev.map((todo) =>
+        todo.projectId === id ? { ...todo, projectId: null } : todo
+      )
+    );
+  }, []);
+
+  const markProjectReminderFired = useCallback(
+    (id: string, firedOn: string) => {
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === id ? { ...project, reminderFiredOn: firedOn } : project
+        )
+      );
+    },
+    []
+  );
 
   const markReminderFired = useCallback((id: string) => {
     setTodos((prev) =>
@@ -172,7 +234,7 @@ export function useTodos() {
 
   const carryIncompleteForward = useCallback(() => {
     const incomplete = todos.filter(
-      (t) => t.dateKey !== dateKey && !t.completed
+      (t) => t.dateKey < dateKey && !t.completed
     );
     if (incomplete.length === 0) return 0;
 
@@ -183,6 +245,7 @@ export function useTodos() {
       completed: false,
       reminderFired: false,
       pinned: false,
+      projectId: t.projectId,
       createdAt: new Date().toISOString(),
     }));
 
@@ -208,18 +271,19 @@ export function useTodos() {
     [dayLogs, dateKey]
   );
 
-  const updateTodayLog = useCallback(
-    (patch: Partial<Pick<DayLog, "moved" | "blocked">>) => {
+  const updateDayLog = useCallback(
+    (forDate: string, patch: Partial<Pick<DayLog, "moved" | "blocked">>) => {
+      if (!isDateKey(forDate)) return;
       setDayLogs((prev) => {
-        const current = prev.find((log) => log.dateKey === dateKey) ?? {
-          dateKey,
+        const current = prev.find((log) => log.dateKey === forDate) ?? {
+          dateKey: forDate,
           moved: "",
           blocked: "",
         };
-        return upsertDayLog(prev, { ...current, ...patch, dateKey });
+        return upsertDayLog(prev, { ...current, ...patch, dateKey: forDate });
       });
     },
-    [dateKey]
+    []
   );
 
   const streak = useMemo(() => {
@@ -268,8 +332,14 @@ export function useTodos() {
     carryIncompleteForward,
     updateSettings,
     setPinned,
-    clearCompletedToday,
+    clearCompleted,
     todayLog,
-    updateTodayLog,
+    dayLogs,
+    updateDayLog,
+    projects,
+    addProject,
+    updateProject,
+    deleteProject,
+    markProjectReminderFired,
   };
 }

@@ -1,5 +1,5 @@
-import { normalizeDayLog, normalizeTodo } from "@/lib/tasks";
-import type { AppSettings, DayLog, DayProgress, Todo } from "@/lib/types";
+import { normalizeDayLog, normalizeProject, normalizeTodo } from "@/lib/tasks";
+import type { AppSettings, DayLog, DayProgress, Project, Todo } from "@/lib/types";
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from "@/lib/types";
 
 function readJson<T>(key: string, fallback: T): T {
@@ -59,6 +59,19 @@ export function loadDayLogs(): DayLog[] {
 
 export function saveDayLogs(logs: DayLog[]): void {
   writeJson(STORAGE_KEYS.dayLogs, logs);
+}
+
+export function loadProjects(): Project[] {
+  const raw = readJson<unknown>(STORAGE_KEYS.projects, []);
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    const project = normalizeProject(item);
+    return project ? [project] : [];
+  });
+}
+
+export function saveProjects(projects: Project[]): void {
+  writeJson(STORAGE_KEYS.projects, projects);
 }
 
 export function upsertDayLog(logs: DayLog[], entry: DayLog): DayLog[] {

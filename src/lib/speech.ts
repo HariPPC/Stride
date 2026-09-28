@@ -121,6 +121,20 @@ export function buildNudge(name: string, taskTitle: string): string {
   return `${first}, let’s tackle ${taskTitle} next. You’ve got this.`;
 }
 
+export function buildProjectReminderLine(
+  name: string,
+  projectName: string,
+  openCount: number,
+  topTitle: string
+): string {
+  const first = name.trim() || "friend";
+  if (openCount <= 1) {
+    return `Hey ${first}, ${projectName} needs you. Can you please work on ${topTitle}?`;
+  }
+  const more = openCount - 1;
+  return `Hey ${first}, ${projectName} still has open work. Start with ${topTitle}. ${more} more ${more === 1 ? "task is" : "tasks are"} waiting on that project.`;
+}
+
 export function buildEmptyNudge(name: string): string {
   const first = name.trim() || "friend";
   return `Hey ${first}, add a focus task for today and I’ll nudge you on it.`;

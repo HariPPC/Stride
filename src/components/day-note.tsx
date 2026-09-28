@@ -6,17 +6,16 @@ const fieldClass =
   "min-h-20 w-full resize-y rounded-lg border border-input bg-white/80 px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 type Props = {
+  title: string;
   moved: string;
   blocked: string;
   onChange: (patch: { moved?: string; blocked?: string }) => void;
 };
 
-export function DayNote({ moved, blocked, onChange }: Props) {
+export function DayNote({ title, moved, blocked, onChange }: Props) {
   return (
     <section className="rounded-2xl border border-border/60 bg-white/70 p-4 shadow-sm backdrop-blur-sm sm:p-5">
-      <h2 className="font-display text-lg font-semibold text-ink">
-        Today&apos;s note
-      </h2>
+      <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         What moved, and what is still blocked. Saved on this device with your
         tasks.

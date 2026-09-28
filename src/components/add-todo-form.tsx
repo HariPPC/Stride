@@ -14,28 +14,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TASK_KINDS } from "@/lib/tasks";
-import type { Priority, TaskKind } from "@/lib/types";
+import type { NewTodoInput, Priority, Project, TaskKind } from "@/lib/types";
+
+const selectClass =
+  "h-8 w-full min-w-36 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 type Props = {
-  onAdd: (
-    title: string,
-    priority: Priority,
-    reminderTime: string | null,
-    kind: TaskKind | null,
-    note: string
-  ) => void;
+  defaultDate: string;
+  projects: Project[];
+  onAdd: (input: NewTodoInput) => void;
 };
 
 const noteClass =
   "min-h-16 w-full resize-y rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
-export function AddTodoForm({ onAdd }: Props) {
+export function AddTodoForm({ defaultDate, projects, onAdd }: Props) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [reminderTime, setReminderTime] = useState("");
   const [kind, setKind] = useState<TaskKind | null>(null);
   const [note, setNote] = useState("");
   const [noteOpen, setNoteOpen] = useState(false);
+  const [dateKey, setDateKey] = useState(defaultDate);
+  const [projectId, setProjectId] = useState<string | null>(null);
 
   const hint =
     TASK_KINDS.find((item) => item.id === kind)?.hint ??
@@ -43,7 +44,15 @@ export function AddTodoForm({ onAdd }: Props) {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    onAdd(title, priority, reminderTime || null, kind, note);
+    onAdd({
+      title,
+      priority,
+      reminderTime: reminderTime || null,
+      kind,
+      note,
+      dateKey,
+      projectId,
+    });
     setTitle("");
     setReminderTime("");
     setPriority("medium");
@@ -61,9 +70,9 @@ export function AddTodoForm({ onAdd }: Props) {
         <Label>Kind</Label>
         <TaskKindPicker value={kind} onChange={setKind} />
       </div>
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
-        <div className="space-y-1.5">
-          <Label htmlFor="todo-title">Today’s focus</Label>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="todo-title">Task</Label>
           <Input
             id="todo-title"
             value={title}
@@ -72,6 +81,34 @@ export function AddTodoForm({ onAdd }: Props) {
             autoComplete="off"
           />
         </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="todo-date">Date</Label>
+          <Input
+            id="todo-date"
+            type="date"
+            value={dateKey}
+            onChange={(event) => setDateKey(event.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="todo-project">Project</Label>
+          <select
+            id="todo-project"
+            value={projectId ?? ""}
+            onChange={(event) => setProjectId(event.target.value || null)}
+            className={selectClass}
+          >
+            <option value="">No project</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
         <div className="space-y-1.5">
           <Label>Priority</Label>
           <Select

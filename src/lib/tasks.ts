@@ -1,4 +1,4 @@
-import type { DayLog, Priority, TaskKind, Todo } from "@/lib/types";
+import type { DayLog, Priority, Project, TaskKind, Todo } from "@/lib/types";
 
 export const TASK_KINDS: { id: TaskKind; label: string; hint: string }[] = [
   {
@@ -117,6 +117,32 @@ export function normalizeTodo(raw: unknown): Todo | null {
     kind: isTaskKind(todo.kind) ? todo.kind : null,
     note: typeof todo.note === "string" ? todo.note : "",
     pinned: Boolean(todo.pinned),
+    projectId:
+      typeof todo.projectId === "string" && todo.projectId ? todo.projectId : null,
+  };
+}
+
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export function normalizeProject(raw: unknown): Project | null {
+  if (!raw || typeof raw !== "object") return null;
+  const project = raw as Partial<Project>;
+  if (typeof project.id !== "string" || typeof project.name !== "string") {
+    return null;
+  }
+  const name = project.name.trim();
+  if (!name) return null;
+  const fired = project.reminderFiredOn;
+  return {
+    id: project.id,
+    name,
+    reminderTime:
+      typeof project.reminderTime === "string" &&
+      TIME_PATTERN.test(project.reminderTime)
+        ? project.reminderTime
+        : null,
+    reminderFiredOn:
+      typeof fired === "string" && /^\d{4}-\d{2}-\d{2}$/.test(fired) ? fired : null,
   };
 }
 
