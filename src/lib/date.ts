@@ -29,6 +29,30 @@ export function lastNDateKeys(n: number, from = new Date()): string[] {
   return keys;
 }
 
+export function isDateKey(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+export function shiftDateKey(dateKey: string, days: number): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const date = new Date(y, (m || 1) - 1, d || 1);
+  date.setDate(date.getDate() + days);
+  return todayKey(date);
+}
+
+export function formatDateKey(dateKey: string): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return formatDisplayDate(new Date(y, (m || 1) - 1, d || 1));
+}
+
+export function dateKeysEndingAt(endKey: string, count: number): string[] {
+  const keys: string[] = [];
+  for (let i = count - 1; i >= 0; i -= 1) {
+    keys.push(shiftDateKey(endKey, -i));
+  }
+  return keys;
+}
+
 export function weekdayShort(dateKey: string): string {
   const [y, m, d] = dateKey.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, {

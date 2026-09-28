@@ -1,8 +1,9 @@
 "use client";
 
-import { Bell, Pencil, Trash2 } from "lucide-react";
+import { Bell, Pencil, Pin, Trash2 } from "lucide-react";
 import { useState } from "react";
 
+import { TaskKindPicker } from "@/components/task-kind-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,17 +23,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Priority, Todo } from "@/lib/types";
+import { taskKindClass, taskKindLabel } from "@/lib/tasks";
+import type { Priority, Project, TaskKind, Todo, TodoPatch } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const selectClass =
+  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 type Props = {
   todo: Todo;
+  projects: Project[];
+  projectName: string | null;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
-  onUpdate: (
-    id: string,
-    patch: Partial<Pick<Todo, "title" | "priority" | "reminderTime">>
-  ) => void;
+  onUpdate: (id: string, patch: TodoPatch) => void;
+  onPin: (id: string, pinned: boolean) => void;
 };
 
 const priorityLabel: Record<Priority, string> = {
@@ -41,27 +46,60 @@ const priorityLabel: Record<Priority, string> = {
   low: "Low",
 };
 
-export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
+const noteClass =
+  "min-h-20 w-full resize-y rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+
+export function TodoItem({
+  todo,
+  projects,
+  projectName,
+  onToggle,
+  onDelete,
+  onUpdate,
+  onPin,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(todo.title);
   const [priority, setPriority] = useState<Priority>(todo.priority);
   const [reminderTime, setReminderTime] = useState(todo.reminderTime ?? "");
+  const [kind, setKind] = useState<TaskKind | null>(todo.kind);
+  const [note, setNote] = useState(todo.note);
+  const [dateKey, setDateKey] = useState(todo.dateKey);
+  const [projectId, setProjectId] = useState<string | null>(todo.projectId);
+
+  function openEditor() {
+    setTitle(todo.title);
+    setPriority(todo.priority);
+    setReminderTime(todo.reminderTime ?? "");
+    setKind(todo.kind);
+    setNote(todo.note);
+    setDateKey(todo.dateKey);
+    setProjectId(todo.projectId);
+    setOpen(true);
+  }
 
   function save() {
     onUpdate(todo.id, {
       title: title.trim() || todo.title,
       priority,
       reminderTime: reminderTime || null,
+      kind,
+      note,
+      dateKey,
+      projectId,
     });
     setOpen(false);
   }
+
+  const kindLabel = taskKindLabel(todo.kind);
 
   return (
     <>
       <li
         className={cn(
           "group flex items-start gap-3 rounded-xl border border-transparent px-3 py-3 transition-colors hover:border-border/80 hover:bg-white/60",
-          todo.completed && "opacity-60"
+          todo.completed && "opacity-60",
+          todo.pinned && !todo.completed && "bg-primary/5"
         )}
       >
         <Checkbox
@@ -79,7 +117,21 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
           >
             {todo.title}
           </p>
+          {todo.note ? (
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+              {todo.note}
+            </p>
+          ) : null}
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            {todo.pinned ? (
+              <Badge className="bg-primary/10 text-primary">Focus</Badge>
+            ) : null}
+            {projectName ? (
+              <Badge className="bg-emerald-100 text-emerald-900">{projectName}</Badge>
+            ) : null}
+            {kindLabel && todo.kind ? (
+              <Badge className={taskKindClass(todo.kind)}>{kindLabel}</Badge>
+            ) : null}
             <Badge
               variant="secondary"
               className={cn(
@@ -105,12 +157,21 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
             type="button"
             variant="ghost"
             size="icon-sm"
-            onClick={() => {
-              setTitle(todo.title);
-              setPriority(todo.priority);
-              setReminderTime(todo.reminderTime ?? "");
-              setOpen(true);
-            }}
+            aria-pressed={todo.pinned}
+            aria-label={
+              todo.pinned ? "Unpin today's focus" : "Pin as today's focus"
+            }
+            title={todo.pinned ? "Unpin today's focus" : "Pin as today's focus"}
+            onClick={() => onPin(todo.id, !todo.pinned)}
+            className={cn(todo.pinned && "text-primary")}
+          >
+            <Pin />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={openEditor}
             aria-label="Edit task"
           >
             <Pencil />
@@ -134,12 +195,52 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
           </DialogHeader>
           <div className="grid gap-3 py-2">
             <div className="space-y-1.5">
+              <Label>Kind</Label>
+              <TaskKindPicker value={kind} onChange={setKind} />
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor={`edit-title-${todo.id}`}>Title</Label>
               <Input
                 id={`edit-title-${todo.id}`}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`edit-note-${todo.id}`}>Note</Label>
+              <textarea
+                id={`edit-note-${todo.id}`}
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                placeholder="Context for this decision, doc, or follow-up."
+                className={noteClass}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`edit-date-${todo.id}`}>Date</Label>
+              <Input
+                id={`edit-date-${todo.id}`}
+                type="date"
+                value={dateKey}
+                onChange={(event) => setDateKey(event.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`edit-project-${todo.id}`}>Project</Label>
+              <select
+                id={`edit-project-${todo.id}`}
+                value={projectId ?? ""}
+                onChange={(event) => setProjectId(event.target.value || null)}
+                className={selectClass}
+              >
+                <option value="">No project</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1.5">
               <Label>Priority</Label>

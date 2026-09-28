@@ -4,11 +4,18 @@ A daily todo list for product managers, with **browser reminders**, **progress t
 
 ## Features
 
+- Add tasks on any date, and move between days
+- Projects with an optional reminder that speaks up only while that project still has open work
+- A 7-day and 30-day report by day, project, and kind, plus what’s coming up
 - Today’s tasks with High / Medium / Low priority
+- Task kinds: decision, doc, follow-up, or meeting, plus a note on each task
+- Pin one task as today’s focus — the buddy nudges that one
+- Search and filters (open, done, kind, priority)
+- A daily note for what moved and what’s blocked
 - Timed reminders (browser notifications + spoken nudges)
 - Speaking buddy avatar (“Hari, can you please work on…”)
 - Daily progress + 7-day streak
-- Carry unfinished tasks into today
+- Carry unfinished tasks into today, and clear finished ones
 - Installable as an app (PWA) with a home-screen / dock icon
 - Local-only storage (`localStorage`) — no account required
 
@@ -52,7 +59,9 @@ chmod +x scripts/startup/*.sh
 
 Then log out/in once to verify. Logs go to `~/.stride/` (or `%USERPROFILE%\.stride\` on Windows).
 
-The in-app **Open when your computer starts** panel also shows the command for your OS. Keep voice/notifications on so your buddy can greet you.
+At sign-in, the helper speaks the greeting Stride saved last time it was open: your name and today’s open tasks. The browser opens after that. If nothing was saved yet, the page speaks the list itself once your tasks load. Keep voice on.
+
+The in-app **Open when your computer starts** panel also shows the command for your OS.
 
 ## Stack
 

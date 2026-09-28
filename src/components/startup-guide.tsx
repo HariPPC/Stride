@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, Copy, Power } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -32,7 +32,7 @@ const COMMANDS: Record<Exclude<Platform, "other">, { title: string; steps: strin
     steps: [
       "Keep this project on your PC (Node.js installed).",
       "Open PowerShell in the project folder and run the command below once.",
-      "Sign out/in once to verify Stride starts and opens in your browser.",
+      "Sign out and back in. Windows speaks today's open tasks, then Stride opens.",
     ],
     command:
       'powershell -ExecutionPolicy Bypass -File .\\scripts\\startup\\install-windows-startup.ps1',
@@ -49,8 +49,15 @@ const COMMANDS: Record<Exclude<Platform, "other">, { title: string; steps: strin
 };
 
 export function StartupGuide() {
-  const platform = useMemo(() => detectPlatform(), []);
+  const [platform, setPlatform] = useState<Platform>("other");
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // navigator is only available in the browser. Matching the server render
+    // avoids a hydration mismatch that remounts the page.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPlatform(detectPlatform());
+  }, []);
   const guide = platform === "other" ? null : COMMANDS[platform];
 
   async function copyCommand() {

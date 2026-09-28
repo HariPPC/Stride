@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  buildDoneGreeting,
   buildEmptyNudge,
   buildGreeting,
   buildNudge,
@@ -11,7 +12,24 @@ import {
   speak,
   stopSpeaking,
 } from "@/lib/speech";
+import { publishStartupGreeting } from "@/lib/startup-greeting";
 import type { Todo } from "@/lib/types";
+
+function greetingText(userName: string, todos: Todo[]): string {
+  const openTitles = todos
+    .filter((todo) => !todo.completed)
+    .sort((a, b) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      const rank = { high: 0, medium: 1, low: 2 } as const;
+      return rank[a.priority] - rank[b.priority];
+    })
+    .map((todo) => todo.title)
+    .slice(0, 3);
+
+  if (openTitles.length) return buildGreeting(userName, openTitles);
+  if (todos.some((todo) => todo.completed)) return buildDoneGreeting(userName);
+  return buildGreeting(userName, []);
+}
 
 type Options = {
   enabled: boolean;
@@ -26,17 +44,19 @@ export function useBuddyVoice({
   todos,
   hydrated,
 }: Options) {
-  const [line, setLine] = useState("Your buddy is getting ready…");
+  const greeting = hydrated ? greetingText(userName, todos) : null;
+  const [followUp, setFollowUp] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const greetedRef = useRef(false);
+  const line = followUp ?? greeting ?? "Your buddy is getting ready…";
 
   const say = useCallback(
     async (text: string) => {
-      setLine(text);
-      if (!enabled || !canSpeak()) return;
+      setFollowUp(text);
+      if (!enabled || !canSpeak()) return "skipped" as const;
       setSpeaking(true);
       try {
-        await speak(text);
+        return await speak(text);
       } finally {
         setSpeaking(false);
       }
@@ -47,18 +67,31 @@ export function useBuddyVoice({
   useEffect(() => {
     if (!hydrated || greetedRef.current) return;
     greetedRef.current = true;
+    if (!enabled || !canSpeak()) return;
+    if (new URLSearchParams(window.location.search).get("spoken") === "1") return;
 
-    const openTitles = todos
-      .filter((t) => !t.completed)
-      .sort((a, b) => {
-        const rank = { high: 0, medium: 1, low: 2 } as const;
-        return rank[a.priority] - rank[b.priority];
-      })
-      .map((t) => t.title)
-      .slice(0, 3);
+    const text = greetingText(userName, todos);
+    let cancelled = false;
+    const retry = () => {
+      window.removeEventListener("pointerdown", retry);
+      if (!cancelled) void say(text);
+    };
+    // Startup opens this page at login. Speak today's list as soon as it loads.
+    void speak(text).then((result) => {
+      if (cancelled || result === "ended" || result === "skipped") return;
+      window.addEventListener("pointerdown", retry);
+    });
+    return () => {
+      cancelled = true;
+      window.removeEventListener("pointerdown", retry);
+    };
+  }, [hydrated, todos, userName, enabled, say]);
 
-    void say(buildGreeting(userName, openTitles));
-  }, [hydrated, todos, userName, say]);
+  useEffect(() => {
+    if (!hydrated) return;
+    const text = enabled ? greetingText(userName, todos) : "";
+    void publishStartupGreeting(text);
+  }, [hydrated, todos, userName, enabled]);
 
   const remindAbout = useCallback(
     async (taskTitle: string) => {
