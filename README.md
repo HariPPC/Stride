@@ -5,10 +5,14 @@ A daily todo list for product managers, with **browser reminders**, **progress t
 ## Features
 
 - Today’s tasks with High / Medium / Low priority
+- Task kinds: decision, doc, follow-up, or meeting, plus a note on each task
+- Pin one task as today’s focus — the buddy nudges that one
+- Search and filters (open, done, kind, priority)
+- A daily note for what moved and what’s blocked
 - Timed reminders (browser notifications + spoken nudges)
 - Speaking buddy avatar (“Hari, can you please work on…”)
 - Daily progress + 7-day streak
-- Carry unfinished tasks into today
+- Carry unfinished tasks into today, and clear finished ones
 - Installable as an app (PWA) with a home-screen / dock icon
 - Local-only storage (`localStorage`) — no account required
 

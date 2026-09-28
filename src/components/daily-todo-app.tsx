@@ -1,12 +1,15 @@
 "use client";
 
 import { Download, ListTodo, Sparkles } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { AddTodoForm } from "@/components/add-todo-form";
 import { BuddyCompanion } from "@/components/buddy-companion";
+import { DayNote } from "@/components/day-note";
+import { FocusCard } from "@/components/focus-card";
 import { ReminderPermission } from "@/components/reminder-permission";
 import { StartupGuide } from "@/components/startup-guide";
+import { TaskFilters } from "@/components/task-filters";
 import { TodoItem } from "@/components/todo-item";
 import { WeekStreak } from "@/components/week-streak";
 import { Button } from "@/components/ui/button";
@@ -17,6 +20,11 @@ import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useReminders } from "@/hooks/use-reminders";
 import { useTodos } from "@/hooks/use-todos";
 import { formatDisplayDate } from "@/lib/date";
+import {
+  DEFAULT_FILTERS,
+  filterTodos,
+  type TodoFilters,
+} from "@/lib/tasks";
 
 const priorityRank = { high: 0, medium: 1, low: 2 } as const;
 
@@ -39,7 +47,13 @@ export function DailyTodoApp() {
     markReminderFired,
     carryIncompleteForward,
     updateSettings,
+    setPinned,
+    clearCompletedToday,
+    todayLog,
+    updateTodayLog,
   } = useTodos();
+
+  const [filters, setFilters] = useState<TodoFilters>(DEFAULT_FILTERS);
 
   const { canInstall, installed, promptInstall } = usePwaInstall();
 
@@ -63,12 +77,21 @@ export function DailyTodoApp() {
     () =>
       [...todos].sort((a, b) => {
         if (a.completed !== b.completed) return a.completed ? 1 : -1;
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
         return priorityRank[a.priority] - priorityRank[b.priority];
       }),
     [todos]
   );
 
+  const visible = useMemo(
+    () => filterTodos(sorted, filters),
+    [sorted, filters]
+  );
+
   const topOpen = sorted.find((t) => !t.completed) ?? null;
+  const pinned = sorted.find((t) => t.pinned) ?? null;
+  const openCount = sorted.filter((todo) => !todo.completed).length;
+  const doneCount = sorted.length - openCount;
 
   const carryCount = useMemo(
     () => allTodos.filter((t) => t.dateKey !== dateKey && !t.completed).length,
@@ -181,17 +204,29 @@ export function DailyTodoApp() {
             <ListTodo className="size-4" />
             Today
           </h2>
-          {carryCount > 0 ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => carryIncompleteForward()}
-            >
-              <Sparkles data-icon="inline-start" />
-              Carry {carryCount} unfinished
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {doneCount > 0 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearCompletedToday}
+              >
+                Clear done
+              </Button>
+            ) : null}
+            {carryCount > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => carryIncompleteForward()}
+              >
+                <Sparkles data-icon="inline-start" />
+                Carry {carryCount} unfinished
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <Separator />
@@ -202,24 +237,72 @@ export function DailyTodoApp() {
               Start with three outcomes for today
             </p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-              Add the decisions, docs, and follow-ups that move your product forward.
-              Your buddy will greet you and speak up when reminders hit.
+              Tag each one as a decision, doc, follow-up, or meeting. Pin the one
+              that matters most — your buddy will nudge that task.
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-white/70 shadow-sm backdrop-blur-sm">
-            {sorted.map((todo) => (
-              <TodoItem
-                key={todo.id}
-                todo={todo}
-                onToggle={toggleTodo}
-                onDelete={deleteTodo}
-                onUpdate={updateTodo}
+          <div className="space-y-3">
+            {pinned ? (
+              <FocusCard
+                todo={pinned}
+                onNudge={() => {
+                  void buddy.nudgeAbout(pinned.title);
+                }}
+                onUnpin={() => setPinned(pinned.id, false)}
               />
-            ))}
-          </ul>
+            ) : null}
+            <TaskFilters
+              filters={filters}
+              counts={{
+                all: sorted.length,
+                open: openCount,
+                done: doneCount,
+              }}
+              onChange={(patch) =>
+                setFilters((current) => ({ ...current, ...patch }))
+              }
+              onClear={() => setFilters(DEFAULT_FILTERS)}
+            />
+            {visible.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-white/40 px-5 py-8 text-center">
+                <p className="font-medium text-ink">Nothing matches this view</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Clear the filters to see the rest of today.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                >
+                  Show all tasks
+                </Button>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-white/70 shadow-sm backdrop-blur-sm">
+                {visible.map((todo) => (
+                  <TodoItem
+                    key={todo.id}
+                    todo={todo}
+                    onToggle={toggleTodo}
+                    onDelete={deleteTodo}
+                    onUpdate={updateTodo}
+                    onPin={setPinned}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </section>
+
+      <DayNote
+        moved={todayLog.moved}
+        blocked={todayLog.blocked}
+        onChange={updateTodayLog}
+      />
 
       <footer className="space-y-2 pb-8 text-center text-xs text-muted-foreground">
         <p>Saved on this device · Install for a home-screen / dock icon</p>

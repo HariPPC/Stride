@@ -51,6 +51,7 @@ export function useBuddyVoice({
     const openTitles = todos
       .filter((t) => !t.completed)
       .sort((a, b) => {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
         const rank = { high: 0, medium: 1, low: 2 } as const;
         return rank[a.priority] - rank[b.priority];
       })

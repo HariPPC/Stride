@@ -1,4 +1,5 @@
-import type { AppSettings, DayProgress, Todo } from "@/lib/types";
+import { normalizeDayLog, normalizeTodo } from "@/lib/tasks";
+import type { AppSettings, DayLog, DayProgress, Todo } from "@/lib/types";
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from "@/lib/types";
 
 function readJson<T>(key: string, fallback: T): T {
@@ -18,7 +19,12 @@ function writeJson<T>(key: string, value: T): void {
 }
 
 export function loadTodos(): Todo[] {
-  return readJson<Todo[]>(STORAGE_KEYS.todos, []);
+  const raw = readJson<unknown>(STORAGE_KEYS.todos, []);
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    const todo = normalizeTodo(item);
+    return todo ? [todo] : [];
+  });
 }
 
 export function saveTodos(todos: Todo[]): void {
@@ -40,6 +46,32 @@ export function loadSettings(): AppSettings {
 
 export function saveSettings(settings: AppSettings): void {
   writeJson(STORAGE_KEYS.settings, settings);
+}
+
+export function loadDayLogs(): DayLog[] {
+  const raw = readJson<unknown>(STORAGE_KEYS.dayLogs, []);
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    const log = normalizeDayLog(item);
+    return log ? [log] : [];
+  });
+}
+
+export function saveDayLogs(logs: DayLog[]): void {
+  writeJson(STORAGE_KEYS.dayLogs, logs);
+}
+
+export function upsertDayLog(logs: DayLog[], entry: DayLog): DayLog[] {
+  const next = logs.filter((log) => log.dateKey !== entry.dateKey);
+  if (entry.moved.length > 0 || entry.blocked.length > 0) {
+    next.push({
+      dateKey: entry.dateKey,
+      moved: entry.moved,
+      blocked: entry.blocked,
+    });
+  }
+  next.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+  return next.slice(-60);
 }
 
 export function upsertDayProgress(

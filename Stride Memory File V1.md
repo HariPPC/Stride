@@ -1,18 +1,24 @@
 # Stride Memory File V1
 
-Last updated: 2026-09-07
+Last updated: 2026-09-28
 
 ## What this project is
 
 **Stride** is a daily todo web app for product managers:
 
 - Today’s tasks with High / Medium / Low priority
+- Task kinds (decision, doc, follow-up, meeting) and a note on each task
+- Pin one task as today’s focus; the buddy nudges that task first
+- Search and filters (open / done, kind, priority)
+- Daily note: what moved / what’s blocked (`stride.daylog.v1`)
 - Timed reminders (browser notifications + spoken nudges)
 - Speaking buddy avatar (default name: **Hari**)
 - Daily progress + 7-day streak
-- Carry unfinished tasks into today
+- Carry unfinished tasks into today (carried tasks are unpinned)
+- Clear completed tasks for today
 - Installable PWA (manifest + service worker)
 - Data stored in browser `localStorage` only (no auth/DB)
+- Older todos without `kind` / `note` / `pinned` are normalized on load
 
 Stack: Next.js 16 (App Router), TypeScript, Tailwind, shadcn/ui.
 
@@ -119,6 +125,10 @@ In-app panel: **Open when your computer starts** (`StartupGuide`).
 | Path | Role |
 |---|---|
 | `src/components/daily-todo-app.tsx` | Main UI |
+| `src/components/task-filters.tsx` | Search + status/kind/priority filters |
+| `src/components/day-note.tsx` | What moved / what’s blocked |
+| `src/components/focus-card.tsx` | Pinned task |
+| `src/lib/tasks.ts` | Kinds, filters, todo/day-log normalize |
 | `src/components/buddy-companion.tsx` | Avatar + voice controls |
 | `src/hooks/use-todos.ts` | Todos + settings + localStorage |
 | `src/hooks/use-buddy-voice.ts` | Greeting / nudge speech |

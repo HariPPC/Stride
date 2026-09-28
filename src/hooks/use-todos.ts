@@ -4,15 +4,26 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { todayKey } from "@/lib/date";
 import {
+  loadDayLogs,
   loadProgress,
   loadSettings,
   loadTodos,
+  saveDayLogs,
   saveProgress,
   saveSettings,
   saveTodos,
+  upsertDayLog,
   upsertDayProgress,
 } from "@/lib/storage";
-import type { AppSettings, DayProgress, Priority, Todo } from "@/lib/types";
+import type {
+  AppSettings,
+  DayLog,
+  DayProgress,
+  Priority,
+  TaskKind,
+  Todo,
+  TodoPatch,
+} from "@/lib/types";
 import { DEFAULT_SETTINGS } from "@/lib/types";
 
 function createId(): string {
@@ -24,12 +35,14 @@ export function useTodos() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [progress, setProgress] = useState<DayProgress[]>([]);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [dayLogs, setDayLogs] = useState<DayLog[]>([]);
   const dateKey = todayKey();
 
   useEffect(() => {
     setTodos(loadTodos());
     setProgress(loadProgress());
     setSettings(loadSettings());
+    setDayLogs(loadDayLogs());
     setHydrated(true);
   }, []);
 
@@ -47,6 +60,11 @@ export function useTodos() {
     if (!hydrated) return;
     saveSettings(settings);
   }, [settings, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    saveDayLogs(dayLogs);
+  }, [dayLogs, hydrated]);
 
   const todayTodos = useMemo(
     () => todos.filter((t) => t.dateKey === dateKey),
@@ -70,7 +88,13 @@ export function useTodos() {
   }, [hydrated, dateKey, totalCount, completedCount]);
 
   const addTodo = useCallback(
-    (title: string, priority: Priority, reminderTime: string | null) => {
+    (
+      title: string,
+      priority: Priority,
+      reminderTime: string | null,
+      kind: TaskKind | null = null,
+      note = ""
+    ) => {
       const trimmed = title.trim();
       if (!trimmed) return;
       const todo: Todo = {
@@ -82,6 +106,9 @@ export function useTodos() {
         reminderFired: false,
         dateKey,
         createdAt: new Date().toISOString(),
+        kind,
+        note: note.trim(),
+        pinned: false,
       };
       setTodos((prev) => [todo, ...prev]);
     },
@@ -96,31 +123,46 @@ export function useTodos() {
     );
   }, []);
 
-  const updateTodo = useCallback(
-    (
-      id: string,
-      patch: Partial<Pick<Todo, "title" | "priority" | "reminderTime">>
-    ) => {
-      setTodos((prev) =>
-        prev.map((t) => {
-          if (t.id !== id) return t;
-          const next = { ...t, ...patch };
-          if (
-            patch.reminderTime !== undefined &&
-            patch.reminderTime !== t.reminderTime
-          ) {
-            next.reminderFired = false;
-          }
-          return next;
-        })
-      );
-    },
-    []
-  );
+  const updateTodo = useCallback((id: string, patch: TodoPatch) => {
+    setTodos((prev) =>
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        const next = { ...t, ...patch };
+        if (patch.note !== undefined) next.note = patch.note.trim();
+        if (
+          patch.reminderTime !== undefined &&
+          patch.reminderTime !== t.reminderTime
+        ) {
+          next.reminderFired = false;
+        }
+        return next;
+      })
+    );
+  }, []);
 
   const deleteTodo = useCallback((id: string) => {
     setTodos((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  const setPinned = useCallback((id: string, pinned: boolean) => {
+    setTodos((prev) => {
+      const target = prev.find((todo) => todo.id === id);
+      if (!target) return prev;
+      return prev.map((todo) => {
+        if (todo.id === id) return { ...todo, pinned };
+        if (pinned && todo.dateKey === target.dateKey) {
+          return { ...todo, pinned: false };
+        }
+        return todo;
+      });
+    });
+  }, []);
+
+  const clearCompletedToday = useCallback(() => {
+    setTodos((prev) =>
+      prev.filter((todo) => !(todo.dateKey === dateKey && todo.completed))
+    );
+  }, [dateKey]);
 
   const markReminderFired = useCallback((id: string) => {
     setTodos((prev) =>
@@ -140,6 +182,7 @@ export function useTodos() {
       dateKey,
       completed: false,
       reminderFired: false,
+      pinned: false,
       createdAt: new Date().toISOString(),
     }));
 
@@ -154,6 +197,30 @@ export function useTodos() {
   const updateSettings = useCallback((patch: Partial<AppSettings>) => {
     setSettings((prev) => ({ ...prev, ...patch }));
   }, []);
+
+  const todayLog = useMemo(
+    () =>
+      dayLogs.find((log) => log.dateKey === dateKey) ?? {
+        dateKey,
+        moved: "",
+        blocked: "",
+      },
+    [dayLogs, dateKey]
+  );
+
+  const updateTodayLog = useCallback(
+    (patch: Partial<Pick<DayLog, "moved" | "blocked">>) => {
+      setDayLogs((prev) => {
+        const current = prev.find((log) => log.dateKey === dateKey) ?? {
+          dateKey,
+          moved: "",
+          blocked: "",
+        };
+        return upsertDayLog(prev, { ...current, ...patch, dateKey });
+      });
+    },
+    [dateKey]
+  );
 
   const streak = useMemo(() => {
     let count = 0;
@@ -200,5 +267,9 @@ export function useTodos() {
     markReminderFired,
     carryIncompleteForward,
     updateSettings,
+    setPinned,
+    clearCompletedToday,
+    todayLog,
+    updateTodayLog,
   };
 }
