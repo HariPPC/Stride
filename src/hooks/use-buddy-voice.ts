@@ -58,8 +58,10 @@ export function useBuddyVoice({
       .map((t) => t.title)
       .slice(0, 3);
 
-    void say(buildGreeting(userName, openTitles));
-  }, [hydrated, todos, userName, say]);
+    // Show the greeting immediately. Speaking here is not a click, so Chrome
+    // blocks it and can leave speech stuck for the later Nudge me tap.
+    setLine(buildGreeting(userName, openTitles));
+  }, [hydrated, todos, userName]);
 
   const remindAbout = useCallback(
     async (taskTitle: string) => {

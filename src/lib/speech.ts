@@ -4,6 +4,7 @@ type SpeakOptions = {
 };
 
 let preferredVoice: SpeechSynthesisVoice | null = null;
+let currentUtterance: SpeechSynthesisUtterance | null = null;
 
 function pickVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -41,16 +42,23 @@ export function speak(text: string, options: SpeakOptions = {}): Promise<void> {
       return;
     }
 
-    // Chrome can get stuck mid-utterance; clear before starting.
-    stopSpeaking();
+    const synth = window.speechSynthesis;
+    try {
+      synth.resume();
+    } catch {
+      // ignore
+    }
 
     const utter = new SpeechSynthesisUtterance(text.trim());
+    // Keep a reference so Chrome does not garbage-collect the utterance mid-speech.
+    currentUtterance = utter;
     utter.rate = options.rate ?? 1;
     utter.pitch = options.pitch ?? 1.05;
     const voice = pickVoice();
     if (voice) utter.voice = voice;
 
     let settled = false;
+    let retried = false;
     const finish = () => {
       if (settled) return;
       settled = true;
@@ -58,43 +66,53 @@ export function speak(text: string, options: SpeakOptions = {}): Promise<void> {
       resolve();
     };
 
-    // Never leave callers hanging if the browser drops speech events.
-    const watchdog = window.setTimeout(finish, 12_000);
-
-    utter.onend = finish;
-    utter.onerror = finish;
-
-    const start = () => {
-      const late = pickVoice();
-      if (late) utter.voice = late;
-      window.speechSynthesis.speak(utter);
-      // Chrome bug: speech sometimes stays paused until resume().
-      window.setTimeout(() => {
-        try {
-          if (window.speechSynthesis.paused) {
-            window.speechSynthesis.resume();
+    const watchdog = window.setTimeout(finish, 15_000);
+    utter.onend = () => {
+      if (currentUtterance === utter) currentUtterance = null;
+      finish();
+    };
+    utter.onerror = (event) => {
+      // Chrome drops an utterance that starts in the same turn as cancel().
+      if (
+        !retried &&
+        (event.error === "interrupted" ||
+          event.error === "canceled" ||
+          event.error === "not-allowed")
+      ) {
+        retried = true;
+        window.setTimeout(() => {
+          if (settled) return;
+          try {
+            synth.resume();
+          } catch {
+            // ignore
           }
-        } catch {
-          // ignore
-        }
-      }, 50);
+          synth.speak(utter);
+        }, 60);
+        return;
+      }
+      finish();
     };
 
-    if (!window.speechSynthesis.getVoices().length) {
-      const onVoices = () => {
-        window.speechSynthesis.onvoiceschanged = null;
-        start();
-      };
-      window.speechSynthesis.onvoiceschanged = onVoices;
-      window.setTimeout(() => {
-        if (!settled && !window.speechSynthesis.speaking) {
-          start();
-        }
-      }, 300);
+    const startNow = () => {
+      const late = pickVoice();
+      if (late) utter.voice = late;
+      try {
+        synth.resume();
+      } catch {
+        // ignore
+      }
+      // Speak in this turn so a button click still counts as the user gesture.
+      synth.speak(utter);
+    };
+
+    if (synth.speaking || synth.pending) {
+      synth.cancel();
+      window.setTimeout(startNow, 60);
       return;
     }
 
-    start();
+    startNow();
   });
 }
 

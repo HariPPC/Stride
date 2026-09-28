@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, Copy, Power } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -49,8 +49,15 @@ const COMMANDS: Record<Exclude<Platform, "other">, { title: string; steps: strin
 };
 
 export function StartupGuide() {
-  const platform = useMemo(() => detectPlatform(), []);
+  const [platform, setPlatform] = useState<Platform>("other");
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    // navigator is only available in the browser. Matching the server render
+    // avoids a hydration mismatch that remounts the page.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPlatform(detectPlatform());
+  }, []);
   const guide = platform === "other" ? null : COMMANDS[platform];
 
   async function copyCommand() {

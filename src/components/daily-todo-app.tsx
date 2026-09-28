@@ -156,16 +156,25 @@ export function DailyTodoApp() {
     [sorted, filters]
   );
 
-  const todayFocus = useMemo(() => {
-    return (
-      [...todos]
-        .filter((todo) => !todo.completed)
-        .sort((a, b) => {
-          if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-          return priorityRank[a.priority] - priorityRank[b.priority];
-        })[0] ?? null
-    );
-  }, [todos]);
+  const nudgeTask = useMemo(() => {
+    const open = allTodos.filter((todo) => !todo.completed);
+    const byFocus = (a: (typeof open)[number], b: (typeof open)[number]) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return priorityRank[a.priority] - priorityRank[b.priority];
+    };
+    const onView = open.filter((todo) => todo.dateKey === viewDate).sort(byFocus);
+    if (onView[0]) return onView[0];
+    const onToday = open.filter((todo) => todo.dateKey === dateKey).sort(byFocus);
+    if (onToday[0]) return onToday[0];
+    const upcoming = open
+      .filter((todo) => todo.dateKey > dateKey)
+      .sort((a, b) => a.dateKey.localeCompare(b.dateKey) || byFocus(a, b));
+    if (upcoming[0]) return upcoming[0];
+    const overdue = open
+      .filter((todo) => todo.dateKey < dateKey)
+      .sort((a, b) => b.dateKey.localeCompare(a.dateKey) || byFocus(a, b));
+    return overdue[0] ?? null;
+  }, [allTodos, viewDate, dateKey]);
   const pinned = sorted.find((t) => t.pinned) ?? null;
   const openCount = sorted.filter((todo) => !todo.completed).length;
   const doneCount = sorted.length - openCount;
@@ -234,13 +243,13 @@ export function DailyTodoApp() {
           voiceEnabled={settings.voiceEnabled}
           line={buddy.line}
           speaking={buddy.speaking}
-          topTaskTitle={todayFocus?.title ?? null}
+          topTaskTitle={nudgeTask?.title ?? null}
           onUserNameChange={(userName) => updateSettings({ userName })}
           onVoiceEnabledChange={(voiceEnabled) =>
             updateSettings({ voiceEnabled })
           }
           onAskAgain={() => {
-            void buddy.nudgeAbout(todayFocus?.title ?? null);
+            void buddy.nudgeAbout(nudgeTask?.title ?? null);
           }}
           onSilence={buddy.silence}
         />
@@ -291,8 +300,10 @@ export function DailyTodoApp() {
           defaultDate={viewDate}
           projects={projects}
           onAdd={(input) => {
+            const title = input.title.trim();
             addTodo(input);
-            setViewDate(input.dateKey);
+            if (input.dateKey) setViewDate(input.dateKey);
+            if (title) void buddy.nudgeAbout(title);
           }}
         />
       </section>
