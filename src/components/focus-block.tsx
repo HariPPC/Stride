@@ -54,11 +54,12 @@ export function FocusBlock({
       active.title)
     : null;
 
+  const visibleMs = todayMs < 1000 ? 0 : todayMs;
   const summary =
     todaySessions > 0
-      ? `${formatFocused(todayMs)} focused today · ${todaySessions} block${todaySessions === 1 ? "" : "s"} finished`
-      : todayMs > 0
-        ? `${formatFocused(todayMs)} focused today`
+      ? `${formatFocused(visibleMs)} focused today · ${todaySessions} block${todaySessions === 1 ? "" : "s"} finished`
+      : visibleMs > 0
+        ? `${formatFocused(visibleMs)} focused today`
         : "No focus time yet today";
 
   return (
@@ -98,16 +99,19 @@ export function FocusBlock({
           Add a task, then start a 25- or 50-minute block on it.
         </p>
       ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-          <div className="space-y-1.5">
+        <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <div className="min-w-0 space-y-1.5">
             <Label htmlFor="focus-task">Work on</Label>
             <Select
               value={selected?.id}
+              items={Object.fromEntries(
+                openTodos.map((todo) => [todo.id, todo.title])
+              )}
               onValueChange={(value) => {
                 if (value) setPicked(value);
               }}
             >
-              <SelectTrigger id="focus-task" className="w-full bg-white/80">
+              <SelectTrigger id="focus-task" className="w-full min-w-0 bg-white/80">
                 <SelectValue placeholder="Choose a task" />
               </SelectTrigger>
               <SelectContent>
