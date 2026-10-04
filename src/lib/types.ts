@@ -27,10 +27,37 @@ export type DayProgress = {
   completed: number;
 };
 
+export const FOCUS_LENGTHS = [25, 50] as const;
+
+export type FocusLength = (typeof FOCUS_LENGTHS)[number];
+
+/** One in-progress deep-work block. Time left is `endsAt` while running. */
+export type ActiveFocus = {
+  id: string;
+  todoId: string;
+  title: string;
+  dateKey: string;
+  lengthMinutes: FocusLength;
+  /** Epoch ms when this stretch ends. Null while paused. */
+  endsAt: number | null;
+  /** Milliseconds left, used while paused. */
+  remainingMs: number;
+  startedAt: number;
+};
+
+export type FocusState = {
+  active: ActiveFocus | null;
+  /** Completed focus milliseconds keyed by date. */
+  focusedMsByDay: Record<string, number>;
+  /** Finished blocks (timer reached zero) keyed by date. */
+  sessionsByDay: Record<string, number>;
+};
+
 export const STORAGE_KEYS = {
   todos: "stride.todos.v1",
   progress: "stride.progress.v1",
   settings: "stride.settings.v1",
+  focus: "stride.focus.v1",
 } as const;
 
 export const DEFAULT_SETTINGS: AppSettings = {

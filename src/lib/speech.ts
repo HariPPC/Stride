@@ -125,3 +125,31 @@ export function buildEmptyNudge(name: string): string {
   const first = name.trim() || "friend";
   return `Hey ${first}, add a focus task for today and I’ll nudge you on it.`;
 }
+
+export function buildFocusStart(
+  name: string,
+  taskTitle: string,
+  minutes: number
+): string {
+  const first = name.trim() || "friend";
+  return `${first}, focus block started. ${minutes} minutes on ${taskTitle}. I’ll check in when time’s up.`;
+}
+
+export function buildFocusDone(
+  name: string,
+  taskTitle: string,
+  minutes: number
+): string {
+  const first = name.trim() || "friend";
+  return `Nice work, ${first}. You finished a ${minutes}-minute block on ${taskTitle}.`;
+}
+
+export function buildFocusEnded(
+  name: string,
+  taskTitle: string,
+  minutes: number
+): string {
+  const first = name.trim() || "friend";
+  const span = minutes < 1 ? "under a minute" : `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+  return `${first}, you wrapped the block early. ${span} on ${taskTitle} still counts.`;
+}

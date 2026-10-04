@@ -7,6 +7,7 @@ Last updated: 2026-09-07
 **Stride** is a daily todo web app for product managers:
 
 - Today’s tasks with High / Medium / Low priority
+- Focus blocks (25 or 50 minutes) on one open task; buddy speaks at start and end
 - Timed reminders (browser notifications + spoken nudges)
 - Speaking buddy avatar (default name: **Hari**)
 - Daily progress + 7-day streak
@@ -119,6 +120,7 @@ In-app panel: **Open when your computer starts** (`StartupGuide`).
 | Path | Role |
 |---|---|
 | `src/components/daily-todo-app.tsx` | Main UI |
+| `src/components/focus-block.tsx` | 25/50 minute focus block |
 | `src/components/buddy-companion.tsx` | Avatar + voice controls |
 | `src/hooks/use-todos.ts` | Todos + settings + localStorage |
 | `src/hooks/use-buddy-voice.ts` | Greeting / nudge speech |
@@ -133,7 +135,7 @@ In-app panel: **Open when your computer starts** (`StartupGuide`).
 - Brand name: **Stride** (working name; rename if user prefers)
 - Buddy calls user: **Hari** (`DEFAULT_SETTINGS.userName`)
 - Voice on by default
-- Storage keys: `stride.todos.v1`, `stride.progress.v1`, `stride.settings.v1`
+- Storage keys: `stride.todos.v1`, `stride.progress.v1`, `stride.settings.v1`, `stride.focus.v1`
 
 ## Checklist before saying “it’s live”
 

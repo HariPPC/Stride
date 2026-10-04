@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   todo: Todo;
+  inFocus?: boolean;
   onToggle: (id: string) => void;
   onDelete: (id: string) => void;
   onUpdate: (
@@ -41,7 +42,13 @@ const priorityLabel: Record<Priority, string> = {
   low: "Low",
 };
 
-export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
+export function TodoItem({
+  todo,
+  inFocus = false,
+  onToggle,
+  onDelete,
+  onUpdate,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(todo.title);
   const [priority, setPriority] = useState<Priority>(todo.priority);
@@ -91,6 +98,9 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
             >
               {priorityLabel[todo.priority]}
             </Badge>
+            {inFocus ? (
+              <Badge className="bg-primary text-primary-foreground">In focus</Badge>
+            ) : null}
             {todo.reminderTime ? (
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                 <Bell className="size-3.5" />
