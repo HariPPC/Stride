@@ -1,5 +1,5 @@
 /* Stride service worker — offline shell + notification support for installable PWA */
-const CACHE = "stride-shell-v1";
+const CACHE = "stride-shell-v2";
 const SHELL = ["/", "/manifest.webmanifest", "/buddy-avatar.png", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {

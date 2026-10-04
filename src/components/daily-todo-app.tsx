@@ -5,6 +5,7 @@ import { useMemo } from "react";
 
 import { AddTodoForm } from "@/components/add-todo-form";
 import { BuddyCompanion } from "@/components/buddy-companion";
+import { FocusBlock } from "@/components/focus-block";
 import { ReminderPermission } from "@/components/reminder-permission";
 import { StartupGuide } from "@/components/startup-guide";
 import { TodoItem } from "@/components/todo-item";
@@ -13,10 +14,16 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useBuddyVoice } from "@/hooks/use-buddy-voice";
+import { useFocus } from "@/hooks/use-focus";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useReminders } from "@/hooks/use-reminders";
 import { useTodos } from "@/hooks/use-todos";
 import { formatDisplayDate } from "@/lib/date";
+import {
+  buildFocusDone,
+  buildFocusEnded,
+  buildFocusStart,
+} from "@/lib/speech";
 
 const priorityRank = { high: 0, medium: 1, low: 2 } as const;
 
@@ -48,6 +55,19 @@ export function DailyTodoApp() {
     userName: settings.userName,
     todos,
     hydrated,
+  });
+
+  const focus = useFocus({
+    onFinished: (info) => {
+      const spokenMinutes =
+        info.elapsedMs < 30_000
+          ? 0
+          : Math.max(1, Math.round(info.elapsedMs / 60_000));
+      const line = info.completed
+        ? buildFocusDone(settings.userName, info.title, info.lengthMinutes)
+        : buildFocusEnded(settings.userName, info.title, spokenMinutes);
+      void buddy.say(line);
+    },
   });
 
   useReminders({
@@ -89,7 +109,7 @@ export function DailyTodoApp() {
               Stride
             </p>
             <p className="mt-1 text-sm text-muted-foreground sm:text-base">
-              Your daily PM checklist — with a buddy who speaks up when it&apos;s time to move.
+              Your daily PM checklist — timed focus blocks, and a buddy who speaks up.
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -173,6 +193,22 @@ export function DailyTodoApp() {
           }
         />
         <AddTodoForm onAdd={addTodo} />
+        <FocusBlock
+          openTodos={sorted.filter((todo) => !todo.completed)}
+          active={focus.active}
+          now={focus.now}
+          todayMs={focus.todayMs(dateKey)}
+          todaySessions={focus.sessionsByDay[dateKey] ?? 0}
+          onStart={(todo, minutes) => {
+            focus.start(todo, minutes, dateKey);
+            void buddy.say(
+              buildFocusStart(settings.userName, todo.title, minutes)
+            );
+          }}
+          onPause={focus.pause}
+          onResume={focus.resume}
+          onEnd={focus.endEarly}
+        />
       </section>
 
       <section className="space-y-3">
@@ -212,6 +248,7 @@ export function DailyTodoApp() {
               <TodoItem
                 key={todo.id}
                 todo={todo}
+                inFocus={focus.active?.todoId === todo.id}
                 onToggle={toggleTodo}
                 onDelete={deleteTodo}
                 onUpdate={updateTodo}

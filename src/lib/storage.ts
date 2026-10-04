@@ -1,4 +1,5 @@
-import type { AppSettings, DayProgress, Todo } from "@/lib/types";
+import { sanitizeFocusState } from "@/lib/focus";
+import type { AppSettings, DayProgress, FocusState, Todo } from "@/lib/types";
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from "@/lib/types";
 
 function readJson<T>(key: string, fallback: T): T {
@@ -40,6 +41,14 @@ export function loadSettings(): AppSettings {
 
 export function saveSettings(settings: AppSettings): void {
   writeJson(STORAGE_KEYS.settings, settings);
+}
+
+export function loadFocus(): FocusState {
+  return sanitizeFocusState(readJson<unknown>(STORAGE_KEYS.focus, null));
+}
+
+export function saveFocus(state: FocusState): void {
+  writeJson(STORAGE_KEYS.focus, state);
 }
 
 export function upsertDayProgress(

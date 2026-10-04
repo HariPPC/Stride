@@ -5,6 +5,7 @@ A daily todo list for product managers, with **browser reminders**, **progress t
 ## Features
 
 - Today’s tasks with High / Medium / Low priority
+- Focus blocks (25 or 50 minutes) on one task, with a spoken start and finish
 - Timed reminders (browser notifications + spoken nudges)
 - Speaking buddy avatar (“Hari, can you please work on…”)
 - Daily progress + 7-day streak
