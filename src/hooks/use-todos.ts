@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { todayKey } from "@/lib/date";
 import { isDateKey } from "@/lib/date";
+import { mergeJiraIssues, type JiraIssue } from "@/lib/jira";
 import {
   loadDayLogs,
   loadProgress,
@@ -42,6 +43,10 @@ export function useTodos() {
   const [dayLogs, setDayLogs] = useState<DayLog[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const dateKey = todayKey();
+  const todosRef = useRef(todos);
+  useEffect(() => {
+    todosRef.current = todos;
+  }, [todos]);
 
   useEffect(() => {
     setTodos(loadTodos());
@@ -154,6 +159,12 @@ export function useTodos() {
   const deleteTodo = useCallback((id: string) => {
     setTodos((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  const importJiraIssues = useCallback((issues: JiraIssue[]) => {
+    const result = mergeJiraIssues(todosRef.current, issues, dateKey);
+    setTodos(result.todos);
+    return result;
+  }, [dateKey]);
 
   const setPinned = useCallback((id: string, pinned: boolean) => {
     setTodos((prev) => {
@@ -328,6 +339,7 @@ export function useTodos() {
     toggleTodo,
     updateTodo,
     deleteTodo,
+    importJiraIssues,
     markReminderFired,
     carryIncompleteForward,
     updateSettings,

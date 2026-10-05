@@ -85,7 +85,8 @@ export function filterTodos(todos: Todo[], filters: TodoFilters): Todo[] {
       return false;
     }
     if (!query) return true;
-    return `${todo.title}\n${todo.note}`.toLowerCase().includes(query);
+    const jiraKey = todo.jira?.key.toLowerCase() ?? "";
+    return `${todo.title}\n${todo.note}\n${jiraKey}`.toLowerCase().includes(query);
   });
 }
 
@@ -119,6 +120,19 @@ export function normalizeTodo(raw: unknown): Todo | null {
     pinned: Boolean(todo.pinned),
     projectId:
       typeof todo.projectId === "string" && todo.projectId ? todo.projectId : null,
+    jira: normalizeJiraLink(todo.jira),
+  };
+}
+
+function normalizeJiraLink(raw: unknown): Todo["jira"] {
+  if (!raw || typeof raw !== "object") return undefined;
+  const link = raw as Partial<NonNullable<Todo["jira"]>>;
+  if (typeof link.key !== "string" || typeof link.url !== "string") return undefined;
+  return {
+    key: link.key,
+    url: link.url,
+    status: typeof link.status === "string" ? link.status : "Unknown",
+    issueType: typeof link.issueType === "string" ? link.issueType : "Task",
   };
 }
 

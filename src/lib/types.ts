@@ -11,6 +11,13 @@ export type Priority = "high" | "medium" | "low";
 /** What kind of PM work this task is. Null on tasks created before kinds existed. */
 export type TaskKind = "decision" | "doc" | "followup" | "meeting";
 
+export type JiraLink = {
+  key: string;
+  url: string;
+  status: string;
+  issueType: string;
+};
+
 export type Todo = {
   id: string;
   title: string;
@@ -29,6 +36,8 @@ export type Todo = {
   pinned: boolean;
   /** Project this task belongs to, or null */
   projectId: string | null;
+  /** Set when the task was imported from the GAI board */
+  jira?: JiraLink;
 };
 
 export type TodoPatch = Partial<
@@ -79,7 +88,13 @@ export const STORAGE_KEYS = {
   settings: "stride.settings.v1",
   dayLogs: "stride.daylog.v1",
   projects: "stride.projects.v1",
+  jira: "stride.jira.v1",
 } as const;
+
+export type JiraCredentials = {
+  email: string;
+  apiToken: string;
+};
 
 export const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: false,

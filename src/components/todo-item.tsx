@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Pencil, Pin, Trash2 } from "lucide-react";
+import { Bell, ExternalLink, Pencil, Pin, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { TaskKindPicker } from "@/components/task-kind-picker";
@@ -123,6 +123,21 @@ export function TodoItem({
             </p>
           ) : null}
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            {todo.jira ? (
+              <a
+                href={todo.jira.url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`${todo.jira.key} on the GAI board`}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary underline-offset-2 hover:underline"
+              >
+                {todo.jira.key}
+                <ExternalLink className="size-3" />
+              </a>
+            ) : null}
+            {todo.jira ? (
+              <span className="text-xs text-muted-foreground">{todo.jira.status}</span>
+            ) : null}
             {todo.pinned ? (
               <Badge className="bg-primary/10 text-primary">Focus</Badge>
             ) : null}

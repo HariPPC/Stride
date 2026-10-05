@@ -4,6 +4,7 @@ import { Download, ListTodo, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { AddTodoForm } from "@/components/add-todo-form";
+import { JiraSync } from "@/components/jira-sync";
 import { BuddyCompanion } from "@/components/buddy-companion";
 import { DayNote } from "@/components/day-note";
 import { DaySwitcher } from "@/components/day-switcher";
@@ -48,6 +49,7 @@ export function DailyTodoApp() {
     toggleTodo,
     updateTodo,
     deleteTodo,
+    importJiraIssues,
     markReminderFired,
     carryIncompleteForward,
     updateSettings,
@@ -306,6 +308,7 @@ export function DailyTodoApp() {
             if (title) void buddy.nudgeAbout(title);
           }}
         />
+        <JiraSync hydrated={hydrated} onImport={importJiraIssues} />
       </section>
 
       <section className="space-y-3">
