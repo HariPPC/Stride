@@ -71,21 +71,10 @@ export function useBuddyVoice({
     if (new URLSearchParams(window.location.search).get("spoken") === "1") return;
 
     const text = greetingText(userName, todos);
-    let cancelled = false;
-    const retry = () => {
-      window.removeEventListener("pointerdown", retry);
-      if (!cancelled) void say(text);
-    };
-    // Startup opens this page at login. Speak today's list as soon as it loads.
-    void speak(text).then((result) => {
-      if (cancelled || result === "ended" || result === "skipped") return;
-      window.addEventListener("pointerdown", retry);
-    });
-    return () => {
-      cancelled = true;
-      window.removeEventListener("pointerdown", retry);
-    };
-  }, [hydrated, todos, userName, enabled, say]);
+    // Speak once when the page is ready. Do not replay this on the next click:
+    // that click is often Nudge me, and the replay was canceling the nudge.
+    void speak(text);
+  }, [hydrated, todos, userName, enabled]);
 
   useEffect(() => {
     if (!hydrated) return;

@@ -89,20 +89,19 @@ export function speak(text: string, options: SpeakOptions = {}): Promise<SpeakRe
       finish();
     };
     utter.onerror = (event) => {
-      // A newer line owns the speaker. Do not talk over it.
+      // A newer nudge owns the speaker. This line was replaced on purpose.
       if (currentUtterance !== utter) {
         finish();
         return;
       }
-      // A login-opened tab often has no click yet. Retry while voices load.
-      if (
-        retries < 3 &&
-        (event.error === "not-allowed" ||
-          event.error === "interrupted" ||
-          event.error === "canceled")
-      ) {
+      // Chrome fires these when cancel() lands on the utterance we just started.
+      if (event.error === "interrupted" || event.error === "canceled") {
+        finish();
+        return;
+      }
+      if (retries < 1 && event.error === "not-allowed") {
         retries += 1;
-        window.setTimeout(startNow, 300);
+        window.setTimeout(startNow, 0);
         return;
       }
       finish();
@@ -118,13 +117,18 @@ export function speak(text: string, options: SpeakOptions = {}): Promise<SpeakRe
       synth.addEventListener("voiceschanged", onVoices);
     }
 
-    if (synth.speaking || synth.pending) {
+    const replacing = synth.speaking || synth.pending;
+    if (replacing) {
       try {
         synth.cancel();
       } catch {
         // ignore
       }
+      // Speaking in the same turn as cancel() makes Chrome drop the new line.
+      window.setTimeout(startNow, 0);
+      return;
     }
+
     // Speak in this turn so Nudge me still counts as the user gesture.
     startNow();
   });
