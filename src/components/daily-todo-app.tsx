@@ -4,6 +4,7 @@ import { Download, ListTodo, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 
 import { AddTodoForm } from "@/components/add-todo-form";
+import { JiraSync } from "@/components/jira-sync";
 import { BuddyCompanion } from "@/components/buddy-companion";
 import { ReminderPermission } from "@/components/reminder-permission";
 import { StartupGuide } from "@/components/startup-guide";
@@ -39,6 +40,7 @@ export function DailyTodoApp() {
     markReminderFired,
     carryIncompleteForward,
     updateSettings,
+    importJiraIssues,
   } = useTodos();
 
   const { canInstall, installed, promptInstall } = usePwaInstall();
@@ -173,6 +175,7 @@ export function DailyTodoApp() {
           }
         />
         <AddTodoForm onAdd={addTodo} />
+        <JiraSync hydrated={hydrated} onImport={importJiraIssues} />
       </section>
 
       <section className="space-y-3">

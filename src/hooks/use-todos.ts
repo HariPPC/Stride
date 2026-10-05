@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { todayKey } from "@/lib/date";
 import {
@@ -12,6 +12,7 @@ import {
   saveTodos,
   upsertDayProgress,
 } from "@/lib/storage";
+import { mergeJiraIssues, type JiraIssue, type JiraMergeResult } from "@/lib/jira";
 import type { AppSettings, DayProgress, Priority, Todo } from "@/lib/types";
 import { DEFAULT_SETTINGS } from "@/lib/types";
 
@@ -47,6 +48,11 @@ export function useTodos() {
     if (!hydrated) return;
     saveSettings(settings);
   }, [settings, hydrated]);
+
+  const todosRef = useRef(todos);
+  useEffect(() => {
+    todosRef.current = todos;
+  }, [todos]);
 
   const todayTodos = useMemo(
     () => todos.filter((t) => t.dateKey === dateKey),
@@ -155,6 +161,15 @@ export function useTodos() {
     setSettings((prev) => ({ ...prev, ...patch }));
   }, []);
 
+  const importJiraIssues = useCallback(
+    (issues: JiraIssue[]): JiraMergeResult => {
+      const result = mergeJiraIssues(todosRef.current, issues, dateKey);
+      setTodos(result.todos);
+      return result;
+    },
+    [dateKey]
+  );
+
   const streak = useMemo(() => {
     let count = 0;
     const cursor = new Date();
@@ -200,5 +215,6 @@ export function useTodos() {
     markReminderFired,
     carryIncompleteForward,
     updateSettings,
+    importJiraIssues,
   };
 }

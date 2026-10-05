@@ -1,4 +1,4 @@
-import type { AppSettings, DayProgress, Todo } from "@/lib/types";
+import type { AppSettings, DayProgress, JiraCredentials, Todo } from "@/lib/types";
 import { DEFAULT_SETTINGS, STORAGE_KEYS } from "@/lib/types";
 
 function readJson<T>(key: string, fallback: T): T {
@@ -40,6 +40,26 @@ export function loadSettings(): AppSettings {
 
 export function saveSettings(settings: AppSettings): void {
   writeJson(STORAGE_KEYS.settings, settings);
+}
+
+export function loadJiraCredentials(): JiraCredentials {
+  const stored = readJson<Partial<JiraCredentials>>(STORAGE_KEYS.jira, {});
+  return {
+    email: typeof stored.email === "string" ? stored.email : "",
+    apiToken: typeof stored.apiToken === "string" ? stored.apiToken : "",
+  };
+}
+
+export function saveJiraCredentials(credentials: JiraCredentials): void {
+  writeJson(STORAGE_KEYS.jira, {
+    email: credentials.email.trim(),
+    apiToken: credentials.apiToken.trim(),
+  });
+}
+
+export function clearJiraCredentials(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(STORAGE_KEYS.jira);
 }
 
 export function upsertDayProgress(

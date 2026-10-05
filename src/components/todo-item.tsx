@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Pencil, Trash2 } from "lucide-react";
+import { Bell, ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -80,6 +80,21 @@ export function TodoItem({ todo, onToggle, onDelete, onUpdate }: Props) {
             {todo.title}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            {todo.jira ? (
+              <a
+                href={todo.jira.url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`${todo.jira.key} in Jira`}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary underline-offset-2 hover:underline"
+              >
+                {todo.jira.key}
+                <ExternalLink className="size-3" />
+              </a>
+            ) : null}
+            {todo.jira ? (
+              <span className="text-xs text-muted-foreground">{todo.jira.status}</span>
+            ) : null}
             <Badge
               variant="secondary"
               className={cn(
