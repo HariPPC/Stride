@@ -8,6 +8,13 @@ export type AppSettings = {
 
 export type Priority = "high" | "medium" | "low";
 
+export type JiraLink = {
+  key: string;
+  url: string;
+  status: string;
+  issueType: string;
+};
+
 export type Todo = {
   id: string;
   title: string;
@@ -19,6 +26,8 @@ export type Todo = {
   reminderFired: boolean;
   dateKey: string;
   createdAt: string;
+  /** Set when the task was imported from Jira */
+  jira?: JiraLink;
 };
 
 export type DayProgress = {
@@ -31,7 +40,13 @@ export const STORAGE_KEYS = {
   todos: "stride.todos.v1",
   progress: "stride.progress.v1",
   settings: "stride.settings.v1",
+  jira: "stride.jira.v1",
 } as const;
+
+export type JiraCredentials = {
+  email: string;
+  apiToken: string;
+};
 
 export const DEFAULT_SETTINGS: AppSettings = {
   notificationsEnabled: false,
