@@ -46,9 +46,15 @@ chmod +x scripts/startup/*.sh
 ./scripts/startup/install-macos-login-item.sh
 ```
 
-**Windows** (PowerShell)
+**Windows** (PowerShell, from the Stride folder)
+
+Get this version first, then run the installer once. It builds the app, adds a **Stride** icon on the desktop, opens it, and starts it again whenever Windows signs in. Run the installer again after you pull a newer copy.
+
 ```powershell
-.\scripts\startup\install-windows-startup.ps1
+git fetch origin
+git checkout cursor/pm-planning-features-46e3
+git pull
+powershell -ExecutionPolicy Bypass -File .\scripts\startup\install-windows-startup.ps1
 ```
 
 **Linux**

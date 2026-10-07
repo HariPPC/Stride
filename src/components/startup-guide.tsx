@@ -28,11 +28,11 @@ const COMMANDS: Record<Exclude<Platform, "other">, { title: string; steps: strin
     command: "chmod +x scripts/startup/*.sh && ./scripts/startup/install-macos-login-item.sh",
   },
   windows: {
-    title: "Windows — open at sign-in",
+    title: "Windows — desktop icon and open at sign-in",
     steps: [
-      "Keep this project on your PC (Node.js installed).",
-      "Open PowerShell in the project folder and run the command below once.",
-      "Sign out and back in. Windows speaks today's open tasks, then Stride opens.",
+      "In the Stride folder, get this version: git fetch origin, then git checkout cursor/pm-planning-features-46e3, then git pull.",
+      "Open PowerShell in that folder and run the command below once.",
+      "That builds this version, puts a Stride icon on your desktop, speaks today's open tasks, opens the app, and starts it again whenever Windows signs in.",
     ],
     command:
       'powershell -ExecutionPolicy Bypass -File .\\scripts\\startup\\install-windows-startup.ps1',
