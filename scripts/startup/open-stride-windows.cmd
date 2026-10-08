@@ -57,7 +57,8 @@ for /f "tokens=5" %%P in ('netstat -ano ^| findstr /C:":%PORT% " ^| findstr LIST
 goto :eof
 
 :startServer
-start "Stride" /MIN "%~dp0start-stride-server.cmd"
+REM Launch Windows cmd.exe. Starting the downloaded script directly is blocked on company PCs.
+start "Stride" /MIN cmd /c "npm run start -- --port %PORT%"
 goto :eof
 
 :ensureNpm

@@ -8,7 +8,8 @@ root = WScript.Arguments(1)
 Sub MakeLink(folderName)
   linkPath = sh.SpecialFolders(folderName) & "\Stride.lnk"
   Set sc = sh.CreateShortcut(linkPath)
-  sc.TargetPath = launcher
+  sc.TargetPath = sh.ExpandEnvironmentStrings("%SystemRoot%\System32\cmd.exe")
+  sc.Arguments = "/c " & Chr(34) & launcher & Chr(34)
   sc.WorkingDirectory = root
   sc.WindowStyle = 7
   sc.Description = "Open Stride"
