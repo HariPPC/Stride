@@ -30,12 +30,11 @@ const COMMANDS: Record<Exclude<Platform, "other">, { title: string; steps: strin
   windows: {
     title: "Windows — desktop icon and open at sign-in",
     steps: [
-      "Open PowerShell from the Start menu and run the command below once. Leave the window open.",
-      "It updates Stride, puts a Stride icon on your desktop, and replaces the old sign-in shortcut.",
-      "The icon opens this version. Windows also starts it whenever you sign in.",
+      "Open the Stride folder in File Explorer. Click the address bar, type cmd, and press Enter.",
+      "Run the command below once and leave the window open.",
+      "That builds this version, puts a Stride icon on the desktop, and starts it whenever you sign in.",
     ],
-    command:
-      'powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/HariPPC/Stride/cursor/pm-planning-features-46e3/scripts/startup/bootstrap-windows.ps1 | iex"',
+    command: "scripts\\startup\\install-windows.cmd",
   },
   linux: {
     title: "Linux — open at login",

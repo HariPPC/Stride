@@ -17,7 +17,7 @@ if not errorlevel 1 goto ready
 echo Starting this version of Stride...
 echo Starting this version of Stride. 1>>"%LOGDIR%\startup.log" 2>&1
 call :stopPort
-powershell -NoProfile -Command "Start-Sleep -Seconds 1"
+ping -n 2 127.0.0.1 >nul
 if not exist "node_modules" call npm install 1>>"%LOGDIR%\startup.log" 2>&1
 if not exist ".next" call npm run build 1>>"%LOGDIR%\startup.log" 2>&1
 call :startServer
@@ -28,7 +28,7 @@ call :isCurrent
 if not errorlevel 1 goto ready
 set /a TRIES+=1
 if %TRIES% GEQ 30 goto notready
-powershell -NoProfile -Command "Start-Sleep -Seconds 2"
+ping -n 3 127.0.0.1 >nul
 goto waitloop
 
 :notready

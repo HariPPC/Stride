@@ -46,12 +46,15 @@ chmod +x scripts/startup/*.sh
 ./scripts/startup/install-macos-login-item.sh
 ```
 
-**Windows** (PowerShell)
+**Windows** (Command Prompt)
 
-Open PowerShell from the Start menu and run this once. Leave the window open. It finds the existing Stride folder, builds this version, adds a **Stride** icon on the desktop, and starts the app whenever you sign in.
+Open the Stride folder in File Explorer. Click the address bar, type `cmd`, and press Enter. Leave the window open. This builds the app, adds a **Stride** icon on the desktop, and starts it whenever you sign in.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/HariPPC/Stride/cursor/pm-planning-features-46e3/scripts/startup/bootstrap-windows.ps1 | iex"
+```bat
+git fetch origin
+git checkout cursor/pm-planning-features-46e3
+git pull
+scripts\startup\install-windows.cmd
 ```
 
 **Linux**
