@@ -1,12 +1,19 @@
 "use client";
 
 import { Download, ListTodo, Sparkles } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { AddTodoForm } from "@/components/add-todo-form";
+import { JiraSync } from "@/components/jira-sync";
 import { BuddyCompanion } from "@/components/buddy-companion";
+import { DayNote } from "@/components/day-note";
+import { DaySwitcher } from "@/components/day-switcher";
+import { FocusCard } from "@/components/focus-card";
+import { ProjectList } from "@/components/project-list";
 import { ReminderPermission } from "@/components/reminder-permission";
+import { ReportPanel } from "@/components/report-panel";
 import { StartupGuide } from "@/components/startup-guide";
+import { TaskFilters } from "@/components/task-filters";
 import { TodoItem } from "@/components/todo-item";
 import { WeekStreak } from "@/components/week-streak";
 import { Button } from "@/components/ui/button";
@@ -16,7 +23,13 @@ import { useBuddyVoice } from "@/hooks/use-buddy-voice";
 import { usePwaInstall } from "@/hooks/use-pwa-install";
 import { useReminders } from "@/hooks/use-reminders";
 import { useTodos } from "@/hooks/use-todos";
-import { formatDisplayDate } from "@/lib/date";
+import { formatDateKey, formatDisplayDate } from "@/lib/date";
+import { buildProjectReminderLine } from "@/lib/speech";
+import {
+  DEFAULT_FILTERS,
+  filterTodos,
+  type TodoFilters,
+} from "@/lib/tasks";
 
 const priorityRank = { high: 0, medium: 1, low: 2 } as const;
 
@@ -36,10 +49,23 @@ export function DailyTodoApp() {
     toggleTodo,
     updateTodo,
     deleteTodo,
+    importJiraIssues,
     markReminderFired,
     carryIncompleteForward,
     updateSettings,
+    setPinned,
+    clearCompleted,
+    dayLogs,
+    updateDayLog,
+    projects,
+    addProject,
+    updateProject,
+    deleteProject,
+    markProjectReminderFired,
   } = useTodos();
+
+  const [filters, setFilters] = useState<TodoFilters>(DEFAULT_FILTERS);
+  const [viewDate, setViewDate] = useState(dateKey);
 
   const { canInstall, installed, promptInstall } = usePwaInstall();
 
@@ -50,30 +76,122 @@ export function DailyTodoApp() {
     hydrated,
   });
 
+  const projectNudges = useMemo(
+    () =>
+      projects.flatMap((project) => {
+        if (!project.reminderTime) return [];
+        const openTitles = allTodos
+          .filter(
+            (todo) =>
+              todo.projectId === project.id &&
+              !todo.completed &&
+              todo.dateKey <= dateKey
+          )
+          .sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            return priorityRank[a.priority] - priorityRank[b.priority];
+          })
+          .map((todo) => todo.title);
+        return [
+          {
+            id: project.id,
+            name: project.name,
+            reminderTime: project.reminderTime,
+            reminderFiredOn: project.reminderFiredOn,
+            openTitles,
+          },
+        ];
+      }),
+    [projects, allTodos, dateKey]
+  );
+
+  const openCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const todo of allTodos) {
+      if (todo.completed || !todo.projectId || todo.dateKey > dateKey) continue;
+      counts[todo.projectId] = (counts[todo.projectId] ?? 0) + 1;
+    }
+    return counts;
+  }, [allTodos, dateKey]);
+
   useReminders({
     todos,
+    todayKey: dateKey,
     notificationsEnabled: settings.notificationsEnabled,
+    projects: projectNudges,
     onFired: (id, title) => {
       markReminderFired(id);
       void buddy.remindAbout(title);
     },
+    onProjectFired: (project) => {
+      markProjectReminderFired(project.id, dateKey);
+      const top = project.openTitles[0];
+      if (!top) return;
+      void buddy.say(
+        buildProjectReminderLine(
+          settings.userName,
+          project.name,
+          project.openTitles.length,
+          top
+        )
+      );
+    },
   });
+
+  const dayTodos = useMemo(
+    () => allTodos.filter((todo) => todo.dateKey === viewDate),
+    [allTodos, viewDate]
+  );
 
   const sorted = useMemo(
     () =>
-      [...todos].sort((a, b) => {
+      [...dayTodos].sort((a, b) => {
         if (a.completed !== b.completed) return a.completed ? 1 : -1;
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
         return priorityRank[a.priority] - priorityRank[b.priority];
       }),
-    [todos]
+    [dayTodos]
   );
 
-  const topOpen = sorted.find((t) => !t.completed) ?? null;
+  const visible = useMemo(
+    () => filterTodos(sorted, filters),
+    [sorted, filters]
+  );
+
+  const nudgeTask = useMemo(() => {
+    const open = allTodos.filter((todo) => !todo.completed);
+    const byFocus = (a: (typeof open)[number], b: (typeof open)[number]) => {
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return priorityRank[a.priority] - priorityRank[b.priority];
+    };
+    const onView = open.filter((todo) => todo.dateKey === viewDate).sort(byFocus);
+    if (onView[0]) return onView[0];
+    const onToday = open.filter((todo) => todo.dateKey === dateKey).sort(byFocus);
+    if (onToday[0]) return onToday[0];
+    const upcoming = open
+      .filter((todo) => todo.dateKey > dateKey)
+      .sort((a, b) => a.dateKey.localeCompare(b.dateKey) || byFocus(a, b));
+    if (upcoming[0]) return upcoming[0];
+    const overdue = open
+      .filter((todo) => todo.dateKey < dateKey)
+      .sort((a, b) => b.dateKey.localeCompare(a.dateKey) || byFocus(a, b));
+    return overdue[0] ?? null;
+  }, [allTodos, viewDate, dateKey]);
+  const pinned = sorted.find((t) => t.pinned) ?? null;
+  const openCount = sorted.filter((todo) => !todo.completed).length;
+  const doneCount = sorted.length - openCount;
 
   const carryCount = useMemo(
-    () => allTodos.filter((t) => t.dateKey !== dateKey && !t.completed).length,
+    () => allTodos.filter((t) => t.dateKey < dateKey && !t.completed).length,
     [allTodos, dateKey]
   );
+
+  const viewLog = dayLogs.find((log) => log.dateKey === viewDate) ?? {
+    dateKey: viewDate,
+    moved: "",
+    blocked: "",
+  };
+  const viewingToday = viewDate === dateKey;
 
   return (
     <div className="relative mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12">
@@ -127,13 +245,13 @@ export function DailyTodoApp() {
           voiceEnabled={settings.voiceEnabled}
           line={buddy.line}
           speaking={buddy.speaking}
-          topTaskTitle={topOpen?.title ?? null}
+          topTaskTitle={nudgeTask?.title ?? null}
           onUserNameChange={(userName) => updateSettings({ userName })}
           onVoiceEnabledChange={(voiceEnabled) =>
             updateSettings({ voiceEnabled })
           }
           onAskAgain={() => {
-            void buddy.nudgeAbout(topOpen?.title ?? null);
+            void buddy.nudgeAbout(nudgeTask?.title ?? null);
           }}
           onSilence={buddy.silence}
         />
@@ -172,26 +290,61 @@ export function DailyTodoApp() {
             updateSettings({ notificationsEnabled })
           }
         />
-        <AddTodoForm onAdd={addTodo} />
+        <ProjectList
+          projects={projects}
+          openCounts={openCounts}
+          onAdd={addProject}
+          onUpdate={updateProject}
+          onDelete={deleteProject}
+        />
+        <AddTodoForm
+          key={viewDate}
+          defaultDate={viewDate}
+          projects={projects}
+          onAdd={(input) => {
+            const title = input.title.trim();
+            addTodo(input);
+            if (input.dateKey) setViewDate(input.dateKey);
+            if (title) void buddy.nudgeAbout(title);
+          }}
+        />
+        <JiraSync hydrated={hydrated} onImport={importJiraIssues} />
       </section>
 
       <section className="space-y-3">
+        <DaySwitcher
+          dateKey={viewDate}
+          todayKey={dateKey}
+          onChange={setViewDate}
+        />
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
             <ListTodo className="size-4" />
-            Today
+            {viewingToday ? "Today" : formatDateKey(viewDate)}
           </h2>
-          {carryCount > 0 ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => carryIncompleteForward()}
-            >
-              <Sparkles data-icon="inline-start" />
-              Carry {carryCount} unfinished
-            </Button>
-          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {doneCount > 0 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => clearCompleted(viewDate)}
+              >
+                Clear done
+              </Button>
+            ) : null}
+            {viewingToday && carryCount > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => carryIncompleteForward()}
+              >
+                <Sparkles data-icon="inline-start" />
+                Carry {carryCount} unfinished
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <Separator />
@@ -199,27 +352,93 @@ export function DailyTodoApp() {
         {sorted.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-white/40 px-5 py-10 text-center">
             <p className="font-display text-lg font-medium text-ink">
-              Start with three outcomes for today
+              {viewingToday
+                ? "Start with three outcomes for today"
+                : "Nothing on this day yet"}
             </p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-              Add the decisions, docs, and follow-ups that move your product forward.
-              Your buddy will greet you and speak up when reminders hit.
+              Pick the date on the task, tag the kind, and attach a project when
+              the work belongs to one. Pin the task that should get the nudge.
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-white/70 shadow-sm backdrop-blur-sm">
-            {sorted.map((todo) => (
-              <TodoItem
-                key={todo.id}
-                todo={todo}
-                onToggle={toggleTodo}
-                onDelete={deleteTodo}
-                onUpdate={updateTodo}
+          <div className="space-y-3">
+            {pinned ? (
+              <FocusCard
+                todo={pinned}
+                onNudge={() => {
+                  void buddy.nudgeAbout(pinned.title);
+                }}
+                onUnpin={() => setPinned(pinned.id, false)}
               />
-            ))}
-          </ul>
+            ) : null}
+            <TaskFilters
+              filters={filters}
+              counts={{
+                all: sorted.length,
+                open: openCount,
+                done: doneCount,
+              }}
+              onChange={(patch) =>
+                setFilters((current) => ({ ...current, ...patch }))
+              }
+              onClear={() => setFilters(DEFAULT_FILTERS)}
+            />
+            {visible.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-white/40 px-5 py-8 text-center">
+                <p className="font-medium text-ink">Nothing matches this view</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Clear the filters to see the rest of this day.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => setFilters(DEFAULT_FILTERS)}
+                >
+                  Show all tasks
+                </Button>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-white/70 shadow-sm backdrop-blur-sm">
+                {visible.map((todo) => (
+                  <TodoItem
+                    key={todo.id}
+                    todo={todo}
+                    projects={projects}
+                    projectName={
+                      projects.find((project) => project.id === todo.projectId)
+                        ?.name ?? null
+                    }
+                    onToggle={toggleTodo}
+                    onDelete={deleteTodo}
+                    onUpdate={(id, patch) => {
+                      updateTodo(id, patch);
+                      if (patch.dateKey) setViewDate(patch.dateKey);
+                    }}
+                    onPin={setPinned}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
         )}
       </section>
+
+      <DayNote
+        title={viewingToday ? "Today's note" : formatDateKey(viewDate)}
+        moved={viewLog.moved}
+        blocked={viewLog.blocked}
+        onChange={(patch) => updateDayLog(viewDate, patch)}
+      />
+
+      <ReportPanel
+        todos={allTodos}
+        projects={projects}
+        todayKey={dateKey}
+        onSelectDate={setViewDate}
+      />
 
       <footer className="space-y-2 pb-8 text-center text-xs text-muted-foreground">
         <p>Saved on this device · Install for a home-screen / dock icon</p>

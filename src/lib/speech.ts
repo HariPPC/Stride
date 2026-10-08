@@ -4,6 +4,7 @@ type SpeakOptions = {
 };
 
 let preferredVoice: SpeechSynthesisVoice | null = null;
+let currentUtterance: SpeechSynthesisUtterance | null = null;
 
 function pickVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) {
@@ -34,67 +35,102 @@ export function stopSpeaking(): void {
   window.speechSynthesis.cancel();
 }
 
-export function speak(text: string, options: SpeakOptions = {}): Promise<void> {
+export type SpeakResult = "ended" | "failed" | "skipped";
+
+export function speak(text: string, options: SpeakOptions = {}): Promise<SpeakResult> {
   return new Promise((resolve) => {
     if (!canSpeak() || !text.trim()) {
-      resolve();
+      resolve("skipped");
       return;
     }
 
-    // Chrome can get stuck mid-utterance; clear before starting.
-    stopSpeaking();
+    const synth = window.speechSynthesis;
+    try {
+      synth.resume();
+    } catch {
+      // ignore
+    }
 
     const utter = new SpeechSynthesisUtterance(text.trim());
+    // Keep a reference so Chrome does not garbage-collect the utterance mid-speech.
+    currentUtterance = utter;
     utter.rate = options.rate ?? 1;
     utter.pitch = options.pitch ?? 1.05;
     const voice = pickVoice();
     if (voice) utter.voice = voice;
 
     let settled = false;
+    let retries = 0;
+    let result: SpeakResult = "failed";
     const finish = () => {
       if (settled) return;
       settled = true;
       window.clearTimeout(watchdog);
-      resolve();
+      resolve(result);
     };
 
-    // Never leave callers hanging if the browser drops speech events.
-    const watchdog = window.setTimeout(finish, 12_000);
+    const watchdog = window.setTimeout(finish, 20_000);
 
-    utter.onend = finish;
-    utter.onerror = finish;
-
-    const start = () => {
+    const startNow = () => {
+      if (currentUtterance !== utter || settled) return;
       const late = pickVoice();
       if (late) utter.voice = late;
-      window.speechSynthesis.speak(utter);
-      // Chrome bug: speech sometimes stays paused until resume().
-      window.setTimeout(() => {
-        try {
-          if (window.speechSynthesis.paused) {
-            window.speechSynthesis.resume();
-          }
-        } catch {
-          // ignore
-        }
-      }, 50);
+      try {
+        synth.resume();
+      } catch {
+        // ignore
+      }
+      synth.speak(utter);
     };
 
-    if (!window.speechSynthesis.getVoices().length) {
+    utter.onend = () => {
+      if (currentUtterance === utter) currentUtterance = null;
+      result = "ended";
+      finish();
+    };
+    utter.onerror = (event) => {
+      // A newer nudge owns the speaker. This line was replaced on purpose.
+      if (currentUtterance !== utter) {
+        finish();
+        return;
+      }
+      // Chrome fires these when cancel() lands on the utterance we just started.
+      if (event.error === "interrupted" || event.error === "canceled") {
+        finish();
+        return;
+      }
+      if (retries < 1 && event.error === "not-allowed") {
+        retries += 1;
+        window.setTimeout(startNow, 0);
+        return;
+      }
+      finish();
+    };
+
+    if (!synth.getVoices().length) {
       const onVoices = () => {
-        window.speechSynthesis.onvoiceschanged = null;
-        start();
-      };
-      window.speechSynthesis.onvoiceschanged = onVoices;
-      window.setTimeout(() => {
-        if (!settled && !window.speechSynthesis.speaking) {
-          start();
+        synth.removeEventListener("voiceschanged", onVoices);
+        if (currentUtterance === utter && !settled && !synth.speaking && !synth.pending) {
+          startNow();
         }
-      }, 300);
+      };
+      synth.addEventListener("voiceschanged", onVoices);
+    }
+
+    const replacing = synth.speaking || synth.pending;
+    if (replacing) {
+      try {
+        synth.cancel();
+      } catch {
+        // ignore
+      }
+      // Speaking in the same turn as cancel() makes Chrome drop the new line.
+      window.setTimeout(startNow, 0);
       return;
     }
 
-    start();
+    // Speak in this turn so Nudge me still counts as the user gesture.
+    startNow();
   });
 }
 
@@ -119,6 +155,25 @@ export function buildReminderLine(name: string, taskTitle: string): string {
 export function buildNudge(name: string, taskTitle: string): string {
   const first = name.trim() || "friend";
   return `${first}, let’s tackle ${taskTitle} next. You’ve got this.`;
+}
+
+export function buildProjectReminderLine(
+  name: string,
+  projectName: string,
+  openCount: number,
+  topTitle: string
+): string {
+  const first = name.trim() || "friend";
+  if (openCount <= 1) {
+    return `Hey ${first}, ${projectName} needs you. Can you please work on ${topTitle}?`;
+  }
+  const more = openCount - 1;
+  return `Hey ${first}, ${projectName} still has open work. Start with ${topTitle}. ${more} more ${more === 1 ? "task is" : "tasks are"} waiting on that project.`;
+}
+
+export function buildDoneGreeting(name: string): string {
+  const first = name.trim() || "friend";
+  return `Hey ${first}. You’re clear for today. I’ll speak up when there’s something new to move.`;
 }
 
 export function buildEmptyNudge(name: string): string {

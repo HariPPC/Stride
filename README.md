@@ -4,11 +4,18 @@ A daily todo list for product managers, with **browser reminders**, **progress t
 
 ## Features
 
+- Add tasks on any date, and move between days
+- Projects with an optional reminder that speaks up only while that project still has open work
+- A 7-day and 30-day report by day, project, and kind, plus what’s coming up
 - Today’s tasks with High / Medium / Low priority
+- Task kinds: decision, doc, follow-up, or meeting, plus a note on each task
+- Pin one task as today’s focus — the buddy nudges that one
+- Search and filters (open, done, kind, priority)
+- A daily note for what moved and what’s blocked
 - Timed reminders (browser notifications + spoken nudges)
 - Speaking buddy avatar (“Hari, can you please work on…”)
 - Daily progress + 7-day streak
-- Carry unfinished tasks into today
+- Carry unfinished tasks into today, and clear finished ones
 - Installable as an app (PWA) with a home-screen / dock icon
 - Local-only storage (`localStorage`) — no account required
 
@@ -39,10 +46,15 @@ chmod +x scripts/startup/*.sh
 ./scripts/startup/install-macos-login-item.sh
 ```
 
-**Windows** (PowerShell)
-```powershell
-.\scripts\startup\install-windows-startup.ps1
+**Windows** (Command Prompt)
+
+Open the Stride folder in File Explorer. Click the address bar, type `cmd`, and press Enter. Leave the window open. This builds the app, adds a **Stride** icon on the desktop, and starts it whenever you sign in.
+
+```bat
+cscript //nologo //E:JScript scripts\startup\repair-windows.js
 ```
+
+That creates the desktop icon, opens Stride in Chrome, and starts it again when you sign in. On a company PC, run it from Command Prompt. Do not double-click the downloaded script.
 
 **Linux**
 ```bash
@@ -52,7 +64,9 @@ chmod +x scripts/startup/*.sh
 
 Then log out/in once to verify. Logs go to `~/.stride/` (or `%USERPROFILE%\.stride\` on Windows).
 
-The in-app **Open when your computer starts** panel also shows the command for your OS. Keep voice/notifications on so your buddy can greet you.
+At sign-in, the helper speaks the greeting Stride saved last time it was open: your name and today’s open tasks. The browser opens after that. If nothing was saved yet, the page speaks the list itself once your tasks load. Keep voice on.
+
+The in-app **Open when your computer starts** panel also shows the command for your OS.
 
 ## Stack
 
