@@ -3,13 +3,20 @@
 #   powershell -ExecutionPolicy Bypass -File .\scripts\startup\install-windows-startup.ps1
 
 $ErrorActionPreference = "Stop"
+if (Get-Variable PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+  $PSNativeCommandUseErrorActionPreference = $false
+}
 
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $launcher = Join-Path $root "scripts\startup\open-stride-windows.cmd"
-$startupDir = [Environment]::GetFolderPath("Startup")
-$desktop = [Environment]::GetFolderPath("Desktop")
+$shell = New-Object -ComObject WScript.Shell
+$startupDir = $shell.SpecialFolders.Item("Startup")
+$desktop = $shell.SpecialFolders.Item("Desktop")
+if (-not $startupDir) { $startupDir = [Environment]::GetFolderPath("Startup") }
+if (-not $desktop) { $desktop = [Environment]::GetFolderPath("Desktop") }
 $cmdPath = Join-Path $startupDir "Stride-Open.cmd"
-$shortcutPath = Join-Path $desktop "Stride.lnk"
+$startupShortcut = Join-Path $startupDir "Stride.lnk"
+$desktopShortcut = Join-Path $desktop "Stride.lnk"
 $port = 43123
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
@@ -48,7 +55,7 @@ if ($pids.Count -gt 0) {
   } while ($still -and (Get-Date) -lt $deadline)
 }
 
-Write-Host "Building this version (replaces an older copy already on this PC)..."
+Write-Host "Building this version. Leave this window open. It can take a few minutes."
 cmd /c "npm run build"
 if ($LASTEXITCODE -ne 0) { throw "npm run build failed ($LASTEXITCODE)." }
 
@@ -58,21 +65,25 @@ cd /d "$root"
 call "$launcher"
 "@ | Set-Content -Path $cmdPath -Encoding ASCII
 
-$shell = New-Object -ComObject WScript.Shell
-$shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = Join-Path $env:SystemRoot "System32\cmd.exe"
-$shortcut.Arguments = "/c `"$launcher`""
-$shortcut.WorkingDirectory = $root
-$shortcut.WindowStyle = 7
-$shortcut.Description = "Open Stride"
-$shortcut.Save()
+function New-StrideShortcut([string]$path) {
+  $shortcut = $shell.CreateShortcut($path)
+  $shortcut.TargetPath = Join-Path $env:SystemRoot "System32\cmd.exe"
+  $shortcut.Arguments = "/c `"$launcher`""
+  $shortcut.WorkingDirectory = $root
+  $shortcut.WindowStyle = 7
+  $shortcut.Description = "Open Stride"
+  $shortcut.Save()
+}
+
+New-StrideShortcut $desktopShortcut
+New-StrideShortcut $startupShortcut
 
 Write-Host ""
 Write-Host "Desktop icon:"
-Write-Host "  $shortcutPath"
+Write-Host "  $desktopShortcut"
 Write-Host "Starts when Windows signs in:"
-Write-Host "  $cmdPath"
-Write-Host "To remove both, delete those two files."
+Write-Host "  $startupShortcut"
 Write-Host ""
 Write-Host "Opening Stride now..."
 Start-Process -FilePath $env:ComSpec -ArgumentList "/c `"$launcher`"" -WorkingDirectory $root -Wait
+Write-Host "Done. Use the Stride icon on the desktop."
