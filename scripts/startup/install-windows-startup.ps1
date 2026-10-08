@@ -11,12 +11,16 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $launcher = Join-Path $root "scripts\startup\open-stride-windows.cmd"
 $shell = New-Object -ComObject WScript.Shell
 $startupDir = $shell.SpecialFolders.Item("Startup")
-$desktop = $shell.SpecialFolders.Item("Desktop")
 if (-not $startupDir) { $startupDir = [Environment]::GetFolderPath("Startup") }
-if (-not $desktop) { $desktop = [Environment]::GetFolderPath("Desktop") }
-$cmdPath = Join-Path $startupDir "Stride-Open.cmd"
+$desktopPaths = @(
+  @(
+    $shell.SpecialFolders.Item("Desktop"),
+    [Environment]::GetFolderPath("Desktop")
+  ) | Where-Object { $_ } | Select-Object -Unique
+)
+if (-not $desktopPaths[0]) { throw "Could not find your Desktop folder." }
 $startupShortcut = Join-Path $startupDir "Stride.lnk"
-$desktopShortcut = Join-Path $desktop "Stride.lnk"
+$oldStartupCmd = Join-Path $startupDir "Stride-Open.cmd"
 $port = 43123
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
@@ -24,6 +28,9 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 }
 if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
   throw "npm was not found. Reinstall Node.js, then run this again."
+}
+if (-not (Test-Path -LiteralPath $launcher)) {
+  throw "Missing launcher: $launcher"
 }
 
 Set-Location -LiteralPath $root
@@ -35,55 +42,63 @@ cmd /c "npm install"
 if ($LASTEXITCODE -ne 0) { throw "npm install failed ($LASTEXITCODE)." }
 
 Write-Host "Stopping anything already using port $port..."
-$listeners = netstat -ano | Select-String -Pattern ":$port\s+.*LISTENING"
+function Get-StrideListeners {
+  netstat -ano | Select-String -Pattern ":$port\s+.*LISTENING"
+}
 $pids = @()
-foreach ($line in $listeners) {
+foreach ($line in (Get-StrideListeners)) {
   $procId = ($line.ToString().Trim() -split '\s+')[-1]
-  if ($procId -match '^\d+$' -and [int]$procId -gt 0) {
-    $pids += [int]$procId
-  }
+  if ($procId -match '^\d+$' -and [int]$procId -gt 0) { $pids += [int]$procId }
 }
 foreach ($procId in ($pids | Select-Object -Unique)) {
   Write-Host "  stopping process $procId"
-  Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+  & taskkill.exe /F /T /PID $procId | Out-Null
 }
 if ($pids.Count -gt 0) {
   $deadline = (Get-Date).AddSeconds(8)
   do {
     Start-Sleep -Milliseconds 400
-    $still = netstat -ano | Select-String -Pattern ":$port\s+.*LISTENING"
+    $still = Get-StrideListeners
   } while ($still -and (Get-Date) -lt $deadline)
+  if ($still) {
+    throw "The old Stride is still running on port $port. Close that window, then run this again."
+  }
 }
 
 Write-Host "Building this version. Leave this window open. It can take a few minutes."
 cmd /c "npm run build"
 if ($LASTEXITCODE -ne 0) { throw "npm run build failed ($LASTEXITCODE)." }
 
-@"
-@echo off
-cd /d "$root"
-call "$launcher"
-"@ | Set-Content -Path $cmdPath -Encoding ASCII
-
 function New-StrideShortcut([string]$path) {
   $shortcut = $shell.CreateShortcut($path)
-  $shortcut.TargetPath = Join-Path $env:SystemRoot "System32\cmd.exe"
-  $shortcut.Arguments = "/c `"$launcher`""
+  $shortcut.TargetPath = $launcher
+  $shortcut.Arguments = ""
   $shortcut.WorkingDirectory = $root
   $shortcut.WindowStyle = 7
   $shortcut.Description = "Open Stride"
   $shortcut.Save()
 }
 
-New-StrideShortcut $desktopShortcut
+$desktopShortcuts = @()
+foreach ($desktop in $desktopPaths) {
+  $path = Join-Path $desktop "Stride.lnk"
+  New-StrideShortcut $path
+  $desktopShortcuts += $path
+}
 New-StrideShortcut $startupShortcut
+if (Test-Path -LiteralPath $oldStartupCmd) {
+  Remove-Item -LiteralPath $oldStartupCmd -Force
+}
 
 Write-Host ""
 Write-Host "Desktop icon:"
-Write-Host "  $desktopShortcut"
+foreach ($path in $desktopShortcuts) { Write-Host "  $path" }
 Write-Host "Starts when Windows signs in:"
 Write-Host "  $startupShortcut"
 Write-Host ""
 Write-Host "Opening Stride now..."
-Start-Process -FilePath $env:ComSpec -ArgumentList "/c `"$launcher`"" -WorkingDirectory $root -Wait
-Write-Host "Done. Use the Stride icon on the desktop."
+& cmd.exe /c "`"$launcher`""
+if ($LASTEXITCODE -ne 0) {
+  throw "Stride did not open. The log is in $env:USERPROFILE\.stride\startup.log"
+}
+Write-Host "Done. The desktop icon opens this version, with Add project and Sync Jira."

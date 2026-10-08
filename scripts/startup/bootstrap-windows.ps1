@@ -29,6 +29,20 @@ function Find-RootFrom([string]$start) {
   return $null
 }
 
+function Find-StrideUnder([string]$base, [int]$depth) {
+  if ($depth -lt 0 -or -not $base) { return $null }
+  if (-not (Test-Path -LiteralPath $base)) { return $null }
+  if (Test-StrideRoot $base) { return (Resolve-Path -LiteralPath $base).Path }
+  if ($depth -eq 0) { return $null }
+  $skip = @("node_modules", ".git", ".next", "AppData", "Application Data", "Windows", '$Recycle.Bin')
+  foreach ($dir in Get-ChildItem -LiteralPath $base -Directory -Force -ErrorAction SilentlyContinue) {
+    if ($skip -contains $dir.Name) { continue }
+    $found = Find-StrideUnder $dir.FullName ($depth - 1)
+    if ($found) { return $found }
+  }
+  return $null
+}
+
 function Resolve-StrideRoot {
   $shell = New-Object -ComObject WScript.Shell
   $startup = $shell.SpecialFolders.Item("Startup")
@@ -58,12 +72,24 @@ function Resolve-StrideRoot {
     if ($found) { return $found }
   }
 
-  Write-Host "Searching your user folder for Stride..."
-  $hits = Get-ChildItem -Path $env:USERPROFILE -Filter open-stride-windows.cmd -Recurse -Depth 6 -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\node_modules\\' }
-  foreach ($hit in $hits) {
-    $root = (Resolve-Path -LiteralPath (Join-Path $hit.Directory.FullName "..\..")).Path
-    if (Test-StrideRoot $root) { return $root }
+  Write-Host "Searching your user folder for Stride. Leave this window open."
+  $roots = @(
+    $shell.SpecialFolders.Item("Desktop"),
+    [Environment]::GetFolderPath("Desktop"),
+    [Environment]::GetFolderPath("MyDocuments"),
+    (Join-Path $env:USERPROFILE "Downloads"),
+    (Join-Path $env:USERPROFILE "source"),
+    (Join-Path $env:USERPROFILE "repos"),
+    (Join-Path $env:USERPROFILE "projects"),
+    (Join-Path $env:USERPROFILE "dev"),
+    (Join-Path $env:USERPROFILE "code"),
+    $env:USERPROFILE
+  ) | Where-Object { $_ } | Select-Object -Unique
+  foreach ($base in $roots) {
+    $depth = 5
+    if ($base -eq $env:USERPROFILE) { $depth = 4 }
+    $found = Find-StrideUnder $base $depth
+    if ($found) { return $found }
   }
   return $null
 }
@@ -92,7 +118,12 @@ Set-Location -LiteralPath $root
 & git fetch origin
 if ($LASTEXITCODE -ne 0) { throw "git fetch failed ($LASTEXITCODE)." }
 & git checkout cursor/pm-planning-features-46e3
-if ($LASTEXITCODE -ne 0) { throw "Could not switch to the latest Stride branch ($LASTEXITCODE)." }
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "Local edits were in the way. Setting them aside and continuing."
+  & git stash push -u -m "stride-desktop-install"
+  & git checkout cursor/pm-planning-features-46e3
+  if ($LASTEXITCODE -ne 0) { throw "Could not switch to the latest Stride branch ($LASTEXITCODE)." }
+}
 & git pull --ff-only origin cursor/pm-planning-features-46e3
 if ($LASTEXITCODE -ne 0) { throw "git pull failed ($LASTEXITCODE)." }
 
