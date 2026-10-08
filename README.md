@@ -51,11 +51,10 @@ chmod +x scripts/startup/*.sh
 Open the Stride folder in File Explorer. Click the address bar, type `cmd`, and press Enter. Leave the window open. This builds the app, adds a **Stride** icon on the desktop, and starts it whenever you sign in.
 
 ```bat
-git fetch origin
-git checkout cursor/pm-planning-features-46e3
-git pull
-scripts\startup\install-windows.cmd
+cscript //nologo //E:JScript scripts\startup\repair-windows.js
 ```
+
+That creates the desktop icon, opens Stride in Chrome, and starts it again when you sign in. On a company PC, run it from Command Prompt. Do not double-click the downloaded script.
 
 **Linux**
 ```bash

@@ -34,7 +34,7 @@ const COMMANDS: Record<Exclude<Platform, "other">, { title: string; steps: strin
       "Run the command below once and leave the window open.",
       "That builds this version, puts a Stride icon on the desktop, and starts it whenever you sign in.",
     ],
-    command: "scripts\\startup\\install-windows.cmd",
+    command: "cscript //nologo //E:JScript scripts\\startup\\repair-windows.js",
   },
   linux: {
     title: "Linux — open at login",
